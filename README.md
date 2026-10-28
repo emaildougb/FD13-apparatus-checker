@@ -18,7 +18,7 @@ Daily apparatus check app for Clark County Fire District 13.
 
 ## Before go live
 
-1. **Microsoft app registration.** In the Entra admin center, create an app registration (single tenant, SPA redirect URI `https://emaildougb.github.io/FD13-apparatus-checker/`). Paste the Application (client) ID into `CONFIG.msal.clientId`. Confirm `CONFIG.msal.tenantId`. Until the client ID is set the app runs in demo mode with an account picker.
+1. **Microsoft app registration.** Done. Client ID is set in `CONFIG.msal.clientId`, tenant is `153dc089-095e-4a20-8d10-39321a0aca09`. Demo mode is off.
 2. **Enterprise application.** In Entra, Enterprise applications, this app, Properties: set **Assignment required** to **No**, or crews get blocked by Microsoft.
 3. **Admin emails.** Add Mike Wagner's and Chuck Andrus's Microsoft sign-in addresses to `CONFIG.msal.adminEmails`. Anyone else who signs in with Microsoft is crew.
 4. **Checklists.** Replace the sample checklists in `TPL` with the real content from `fd13-all-checklists.json`. Each item's `cat` becomes a zone, `name` becomes the check name, and `desc` becomes the details text.
