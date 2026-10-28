@@ -206,6 +206,8 @@ h2{font-size:16px;font-weight:500;margin:0}
    for a normal rollout.
    ========================================================= */
 const CONFIG = {
+  version: '1.0.0',
+  versionDate: '2026-10-28',
   // Microsoft sign in. Create the app registration in the district Entra tenant,
   // add the redirect URI for this site, then paste the Client ID here.
   // Until this is set the app runs in demo mode with the account picker.
@@ -402,6 +404,7 @@ function shell(main){
           ${S.adminMode ? `<button class="link-btn" data-act="export">Download data file</button><button class="link-btn" data-act="reset">Reset this device</button>` : ''}` : ''}
         <div class="me"><b>${esc(u.name)}</b><small>${esc(roleOf(u))}</small></div>
         <button class="link-btn" data-act="signout">Sign out</button>
+        <small class="muted" style="font-size:12px">Version ${CONFIG.version}, ${CONFIG.versionDate}</small>
       </div>
     </aside>
     <main class="main" id="main">${main}</main>
@@ -438,6 +441,7 @@ function viewSignin(){
         <div><button class="btn-second" type="submit">Continue</button></div>
       </form>
     </section>
+    <p class="note" style="text-align:center;margin-top:28px">FD13 Apparatus Check, version ${CONFIG.version}, ${CONFIG.versionDate}</p>
   </div></div>`;
 }
 
