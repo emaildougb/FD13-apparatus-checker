@@ -6,7 +6,7 @@ Daily apparatus check app for Clark County Fire District 13.
 
 ## Links
 
-- Live: [https://emaildougb.github.io/FD13-apparatus-checker/](https://emaildougb.github.io/FD13-apparatus-checker/)
+- Live: [https://apparatus.fd13.org/](https://apparatus.fd13.org/) (also at [https://emaildougb.github.io/FD13-apparatus-checker/](https://emaildougb.github.io/FD13-apparatus-checker/))
 - Repo: [https://github.com/emaildougb/FD13-apparatus-checker](https://github.com/emaildougb/FD13-apparatus-checker)
 - Upload: [https://github.com/emaildougb/FD13-apparatus-checker/upload/main](https://github.com/emaildougb/FD13-apparatus-checker/upload/main)
 
@@ -14,6 +14,7 @@ Daily apparatus check app for Clark County Fire District 13.
 
 - `index.html` : the whole app. Version, date and config are at the top of the script.
 - `logo.png` : FD13 logo (header and sign-in)
+- `CNAME` : custom domain for GitHub Pages (apparatus.fd13.org)
 - `README.md` : this file
 
 ## Before go live
