@@ -214,7 +214,7 @@ const CONFIG = {
   msal: {
     clientId: '06fbbe41-0b42-4b07-a071-cb4ffa5092c9',  // FD13 Apparatus Check, Application (client) ID
     tenantId: '153dc089-095e-4a20-8d10-39321a0aca09', // confirm this is the district tenant
-    adminEmails: [],                                // paid staff who get admin access, e.g. 'mike.wagner@...'
+    adminEmails: ['m.wagner@northcountryems.org', 'c.andrus@northcountryems.org'],                                // paid staff who get admin access, e.g. 'mike.wagner@...'
   },
   // EmailJS for the report email. Leave blank to show and copy the report on screen only.
   emailjs: { publicKey: '', serviceId: '', templateId: '', to: '' },
@@ -226,11 +226,11 @@ const CONFIG = {
    DATA. Sample checklists until fd13-all-checklists.json is loaded.
    ========================================================= */
 const ROSTER = [
-  { id:'mike',     name:'Mike Wagner',   email:'', admin:true,  ms:true },
+  { id:'mike',     name:'Mike Wagner',   email:'m.wagner@northcountryems.org', admin:true,  ms:true },
   { id:'chandler', name:'Chandler Reyes', email:'', admin:false, ms:true },
   { id:'joshua',   name:'Joshua Fox',    email:'', admin:false, ms:true },
   { id:'hunter',   name:'Hunter Moraz',  email:'', admin:false, ms:true },
-  { id:'chuck',    name:'Chuck Andris',  email:'', admin:true,  ms:true }
+  { id:'chuck',    name:'Chuck Andrus',  email:'c.andrus@northcountryems.org', admin:true,  ms:true }
 ];
 
 const STATIONS = [
