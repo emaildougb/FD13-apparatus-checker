@@ -1,0 +1,1166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#CE2029">
+<title>FD13 Apparatus Check</title>
+<link rel="icon" href="logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<style>
+:root{
+  --ground:#f8f8f8; --surface:#ffffff; --raised:#eeeeee; --active:#eeeeee;
+  --border:#e6e6e6; --rule:#f0f0f0; --control:#d4d4d4;
+  --text:#0a0a0a; --muted:#6b6b6b; --ink-2:#3d3d3d;
+  --accent:#CE2029; --accent-ink:#ffffff;
+  --positive:#2e7d32; --negative:#B3151D;
+  --pill-positive-bg:#e4f2e6; --pill-positive-ink:#1d4f24;
+  --radius-card:8px; --radius-control:6px;
+  --font:"Geist", Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{font-family:var(--font);background:var(--ground);color:var(--text);font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;cursor:pointer;background:none;border:0;padding:0}
+button:disabled{cursor:not-allowed}
+button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+input,textarea,select{font:inherit;width:100%;padding:10px 12px;border:1px solid var(--control);border-radius:var(--radius-control);background:#fff;color:var(--text);min-height:40px}
+textarea{min-height:88px;resize:vertical}
+.num{font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+h1{font-size:24px;font-weight:700;line-height:1.2;margin:0;letter-spacing:-.01em}
+h2{font-size:16px;font-weight:500;margin:0}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-card)}
+.pad{padding:20px}
+
+/* Buttons */
+.btn-primary{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 18px;border-radius:var(--radius-control);background:var(--accent);color:var(--accent-ink);font-weight:500;font-size:15px;white-space:nowrap}
+.btn-primary:disabled{background:var(--control);color:#4d4d4d}
+.btn-second{display:inline-flex;align-items:center;justify-content:center;min-height:40px;padding:0 14px;border-radius:var(--radius-control);border:1px solid var(--control);background:#fff;color:var(--text);font-weight:500;white-space:nowrap}
+.btn-second:hover{border-color:var(--text)}
+.btn-danger{display:inline-flex;align-items:center;justify-content:center;min-height:40px;padding:0 14px;border-radius:var(--radius-control);background:var(--negative);color:#fff;font-weight:500}
+.link-btn{color:var(--muted);text-decoration:underline;text-underline-offset:3px;font-size:13px;padding:6px 0;text-align:left}
+.link-btn:hover{color:var(--text)}
+.block{display:flex;width:100%}
+.err-text{color:var(--negative);font-size:13px;margin:8px 0 0;min-height:1em}
+
+/* Sign in */
+.signin{min-height:100vh;display:flex;align-items:flex-start;justify-content:center;padding:56px 20px 80px}
+.signin-col{width:100%;max-width:420px}
+.brand-lg{display:flex;align-items:center;gap:14px;margin-bottom:28px}
+.brand-lg img{width:56px;height:56px;border-radius:50%;background:#fff;flex:none}
+.divider{height:1px;background:var(--rule);margin:28px 0}
+.stack{display:grid;gap:8px;margin-top:14px}
+.stack label{font-size:13px;font-weight:500;color:var(--ink-2)}
+.note{font-size:13px;color:var(--muted);margin:10px 0 0}
+
+/* Shell */
+.side{position:fixed;left:0;top:0;bottom:0;width:240px;padding:20px 14px;display:flex;flex-direction:column;gap:24px;background:var(--ground);border-right:1px solid var(--border)}
+.brand{display:flex;align-items:center;gap:10px;padding:0 8px}
+.brand img{width:36px;height:36px;border-radius:50%;background:#fff;flex:none}
+.brand b{display:block;font-size:14px;font-weight:500}
+.brand small{display:block;font-size:12px;color:var(--muted)}
+.nav{display:grid;gap:2px}
+.nav-item{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:34px;padding:0 10px;border-radius:6px;text-align:left;color:var(--ink-2);font-size:14px;width:100%}
+.nav-item:hover{background:var(--rule)}
+.nav-item.on{background:var(--active);color:var(--text);font-weight:500}
+.count{font-size:12px;background:var(--accent);color:#fff;border-radius:999px;padding:1px 7px;font-weight:500}
+.side-foot{margin-top:auto;display:grid;gap:10px;padding:16px 8px 0;border-top:1px solid var(--border)}
+.me b{display:block;font-weight:500}
+.me small{color:var(--muted);font-size:12px}
+.main{margin-left:240px;padding:32px 40px 150px;max-width:1080px}
+.bottom-nav{display:none}
+.pagehead{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:18px;flex-wrap:wrap}
+.crumbs{font-size:13px;color:var(--muted);margin-bottom:6px;display:flex;gap:6px;flex-wrap:wrap}
+.crumbs button{color:var(--muted);text-decoration:underline;text-underline-offset:3px}
+.pagehead .sub{margin:6px 0 0;color:var(--muted)}
+.finding{margin:14px 0 0;font-size:14px;color:var(--ink-2)}
+.finding b{color:var(--accent);font-weight:500}
+.banner{font-size:13px;padding:10px 12px;border-radius:var(--radius-control);background:var(--raised);color:var(--ink-2);margin:0 0 16px}
+
+/* Counts and lists */
+.counts{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin:0 0 20px}
+.count-card{border:1px solid var(--border);background:var(--surface);border-radius:var(--radius-card);padding:12px;text-align:left;min-height:61px}
+.count-card span{display:block;font-size:13px;color:var(--muted)}
+.count-card strong{display:block;font-size:16px;font-weight:500;font-variant-numeric:tabular-nums}
+.count-card.on{border:1.5px solid var(--text);background:var(--active)}
+.count-card.fail strong{color:var(--accent)}
+.station{margin-bottom:20px}
+.station-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin:0 0 8px;flex-wrap:wrap}
+.station-head h2{font-size:16px}
+.station-head span{font-size:13px;color:var(--muted)}
+.list{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-card);overflow:hidden}
+.row{display:grid;grid-template-columns:auto auto minmax(0,1fr) auto auto auto;align-items:center;gap:12px;min-height:56px;padding:10px 14px;border-top:1px solid var(--rule);background:var(--surface)}
+.row:first-child{border-top:0}
+.row.dragging{opacity:.4}
+.row-main{text-align:left;min-width:0;display:block}
+.row-title{display:block;font-weight:500}
+.row-sub{display:block;font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row-meta{font-size:13px;color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums}
+.row-meta.fail{color:var(--accent);font-weight:500}
+.row-meta.done{color:var(--positive)}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--control);flex:none}
+.dot.prog{background:var(--muted)}
+.dot.done{background:var(--positive)}
+.dot.fail{background:var(--accent)}
+.grip{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:6px;color:var(--muted);touch-action:none;cursor:grab;user-select:none;font-size:18px;border:1px solid var(--border);background:#fff}
+.ghost-btn{min-height:32px;padding:0 10px;border-radius:6px;border:1px solid var(--control);background:#fff;font-size:13px;white-space:nowrap}
+.ghost-btn:hover{border-color:var(--text)}
+.ghost-btn.fail{color:var(--accent);border-color:var(--accent)}
+.edit-btn{min-height:32px;padding:0 10px;border-radius:6px;font-size:13px;color:var(--muted);border:1px solid var(--border);background:#fff}
+.edit-btn:hover{color:var(--text);border-color:var(--control)}
+
+/* Problems */
+.problem{padding:14px;border-top:1px solid var(--rule);display:grid;gap:8px}
+.problem:first-child{border-top:0}
+.problem-top{display:flex;justify-content:space-between;gap:12px;align-items:baseline;flex-wrap:wrap}
+.problem .who{font-size:13px;color:var(--muted)}
+.problem-actions{display:flex;gap:8px;flex-wrap:wrap}
+.tag{font-size:12px;border-radius:999px;padding:2px 9px;background:var(--raised);color:var(--ink-2);white-space:nowrap}
+.tag.red{background:var(--accent);color:#fff}
+.problems-card{margin-bottom:16px;overflow:hidden}
+.problems-card > .card-head{padding:12px 14px;border-bottom:1px solid var(--rule);display:flex;justify-content:space-between;align-items:center;gap:12px}
+
+/* Check */
+.zjump{display:flex;gap:6px;overflow-x:auto;margin:0 0 16px;padding-bottom:4px}
+.zjump a{flex:none;font-size:13px;padding:6px 12px;border-radius:999px;border:1px solid var(--control);color:var(--ink-2);text-decoration:none;white-space:nowrap;background:#fff}
+.zjump a.done{background:var(--pill-positive-bg);border-color:transparent;color:var(--pill-positive-ink)}
+.zjump a.fail{border-color:var(--accent);color:var(--accent);font-weight:500}
+.check-card{margin-bottom:16px;overflow:hidden}
+.check-head{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--rule)}
+.check-head h2{flex:1;font-size:15px}
+.item{padding:14px;border-top:1px solid var(--rule)}
+.item:first-of-type{border-top:0}
+.item.fail{box-shadow:inset 3px 0 0 var(--accent)}
+.item-top{display:flex;align-items:center;gap:10px}
+.item-name{flex:1;font-weight:500;min-width:0}
+.details-btn{font-size:13px;color:var(--muted);text-decoration:underline;text-underline-offset:3px;padding:6px 0}
+.item-desc{font-size:13px;color:var(--ink-2);margin:8px 0 0;max-width:62ch}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px;max-width:340px}
+.seg button{min-height:44px;border-radius:var(--radius-control);border:1px solid var(--control);background:#fff;font-weight:500;color:var(--ink-2)}
+.seg button.pass.on{background:var(--text);border-color:var(--text);color:#fff}
+.seg button.fail.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.fixwhat{margin-top:12px;display:grid;gap:8px;max-width:520px}
+.fixwhat .label{font-size:13px;color:var(--ink-2);font-weight:500}
+.fixgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.fixgrid button{min-height:40px;border-radius:var(--radius-control);border:1px solid var(--control);background:#fff;font-size:14px;color:var(--ink-2)}
+.fixgrid button.on{border-color:var(--text);background:var(--active);color:var(--text);font-weight:500}
+.fixgrid button.unable.on{border-color:var(--accent);color:var(--accent);background:#fff;box-shadow:inset 0 0 0 1px var(--accent)}
+.note-field{margin-top:4px}
+.note-hint{font-size:12px;color:var(--accent);margin:4px 0 0}
+.add-row{display:block;width:100%;text-align:left;padding:12px 14px;color:var(--accent);font-weight:500;border-top:1px dashed var(--control)}
+.sticky-bar{position:fixed;left:240px;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--border);padding:12px 40px;display:flex;align-items:center;justify-content:space-between;gap:16px;z-index:15}
+.sticky-bar p{margin:0;font-size:13px;color:var(--muted)}
+.sticky-bar .btn-primary{min-width:240px}
+.sticky-bar .btn-primary[aria-disabled="true"]{background:var(--control);color:#4d4d4d}
+
+/* Sheets and toast */
+.toast{position:fixed;left:50%;bottom:104px;transform:translateX(-50%) translateY(16px);background:var(--text);color:#fff;padding:10px 16px;border-radius:var(--radius-control);opacity:0;transition:opacity .2s,transform .2s;z-index:60;max-width:90vw;pointer-events:none;font-size:14px}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.scrim{position:fixed;inset:0;background:rgba(10,10,10,.4);z-index:40}
+.sheet{position:fixed;left:50%;bottom:0;transform:translateX(-50%);width:100%;max-width:560px;background:var(--surface);border-radius:12px 12px 0 0;padding:20px;z-index:41;max-height:85vh;overflow:auto;border:1px solid var(--border);border-bottom:0}
+.sheet h3{margin:0 0 4px;font-size:16px;font-weight:500}
+.sheet label{display:block;font-size:13px;font-weight:500;color:var(--ink-2);margin:12px 0 6px}
+.actions{display:flex;gap:10px;margin-top:18px;justify-content:flex-end;flex-wrap:wrap}
+.acct{display:flex;justify-content:space-between;align-items:center;width:100%;min-height:52px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-control);margin-top:8px;text-align:left;background:#fff}
+.acct:hover{border-color:var(--text)}
+.acct small{color:var(--muted);font-size:12px}
+.report{white-space:pre-wrap;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px;background:var(--ground);border:1px solid var(--border);border-radius:var(--radius-control);padding:12px;max-height:46vh;overflow:auto;margin:10px 0 0}
+.missing li{margin:4px 0}
+.missing button{color:var(--accent);text-decoration:underline;text-underline-offset:3px;text-align:left}
+
+@media (max-width:899px){
+  .side{display:none}
+  .main{margin-left:0;padding:20px 16px 150px}
+  .counts{display:flex;overflow-x:auto;gap:8px;margin-bottom:16px;padding-bottom:2px}
+  .count-card{flex:none;min-width:112px}
+  .list .row[data-id]{grid-template-columns:auto minmax(0,1fr) auto;grid-template-areas:"dot main meta" ". btns btns"}
+  .list .row[data-id] .grip{display:none}
+  .list .row[data-id] .dot{grid-area:dot}
+  .list .row[data-id] .row-main{grid-area:main}
+  .list .row[data-id] .row-meta{grid-area:meta}
+  .list .row[data-id] .ghost-btn,.list .row[data-id] .edit-btn{grid-area:btns;justify-self:start}
+  .row > span:empty{display:none}
+  .bottom-nav{display:flex;position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--border);z-index:20}
+  .bottom-nav button{flex:1;min-height:56px;color:var(--muted);font-size:14px}
+  .bottom-nav button.on{color:var(--text);font-weight:500;box-shadow:inset 0 2px 0 var(--text)}
+  .sticky-bar{left:0;padding:12px 16px;bottom:56px}
+  .sticky-bar .btn-primary{min-width:0;flex:1}
+  .toast{bottom:150px}
+}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="sheet"></div>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* =========================================================
+   CONFIG. Fill these in before go live. Nothing else needs editing
+   for a normal rollout.
+   ========================================================= */
+const CONFIG = {
+  // Microsoft sign in. Create the app registration in the district Entra tenant,
+  // add the redirect URI for this site, then paste the Client ID here.
+  // Until this is set the app runs in demo mode with the account picker.
+  msal: {
+    clientId: '',                                   // paste Application (client) ID
+    tenantId: '153dc089-095e-4a20-8d10-39321a0aca09', // confirm this is the district tenant
+    adminEmails: [],                                // paid staff who get admin access, e.g. 'mike.wagner@...'
+  },
+  // EmailJS for the report email. Leave blank to show and copy the report on screen only.
+  emailjs: { publicKey: '', serviceId: '', templateId: '', to: '' },
+  knownWindowDays: 45,   // carried problems older than this stop showing at the top of a check
+  storageKey: 'fd13check_v3'
+};
+
+/* =========================================================
+   DATA. Sample checklists until fd13-all-checklists.json is loaded.
+   ========================================================= */
+const ROSTER = [
+  { id:'mike',     name:'Mike Wagner',   email:'', admin:true,  ms:true },
+  { id:'chandler', name:'Chandler Reyes', email:'', admin:false, ms:true },
+  { id:'joshua',   name:'Joshua Fox',    email:'', admin:false, ms:true },
+  { id:'hunter',   name:'Hunter Moraz',  email:'', admin:false, ms:true },
+  { id:'chuck',    name:'Chuck Andris',  email:'', admin:true,  ms:true }
+];
+
+const STATIONS = [
+  { id:'s131', name:'Station 131 (51)', addr:'404 S Parcel Ave, Yacolt, WA 98675' },
+  { id:'s132', name:'Station 132 (50)', addr:'30916 NE Sunset Falls Rd, Yacolt, WA 98675' }
+];
+
+const APP_LIST = [
+  { id:'eng51',   name:'Engine 51',       st:'s131', info:'Rosenbauer Commander, 2019' },
+  { id:'eng52',   name:'Engine 52',       st:'s131', info:'KME, 1994' },
+  { id:'sq51',    name:'Squad 51',        st:'s131', info:'Ford F550, 2018' },
+  { id:'wt51',    name:'Water Tender 51', st:'s131', info:'Peterbilt 348, 2020' },
+  { id:'wt52',    name:'Water Tender 52', st:'s131', info:'Kenworth, 1972' },
+  { id:'eng50',   name:'Engine 50',       st:'s132', info:'Rosenbauer 4400DT570, 2005' },
+  { id:'brush51', name:'Brush 51',        st:'s132', info:'Ford F550, 2017' }
+];
+
+const CHK_LIST = [
+  { id:'monthly',  name:'Monthly Detailed' },
+  { id:'preshift', name:'Pre Shift' },
+  { id:'scba',     name:'SCBA' }
+];
+
+// SAMPLE content only.
+const TPL = {
+  monthly: [
+    { name:'Cab Cleanliness and Safety Devices', items:[
+      ['Cab Cleanliness', 'Cab is in acceptable order and free of debris. Seat belts and grab handles are clean and in place.'],
+      ['Fire Extinguisher', 'Extinguisher is charged, the pin and seal are intact, and the gauge reads in the green.']]},
+    { name:'Pump and Control Panel', items:[
+      ['Pump Gauges', 'Gauges read zero at rest, move freely, and have no cracks or fogging.'],
+      ['Drain Valves', 'All drain valves open and close fully and show no leaks.']]},
+    { name:'Fluid Check', items:[
+      ['Engine Oil Level', 'Oil sits inside the marked range on the dipstick. Note any drips under the rig.'],
+      ['Coolant Level', 'Coolant is at the fill line and the cap is tight.']]},
+    { name:'Tires and Wheels', items:[
+      ['Tread and Pressure', 'Tread is above the wear bars and pressure matches the door placard.'],
+      ['Lug Nuts', 'No missing or loose lug nuts. No rust streaks around the studs.']]}
+  ],
+  preshift: [
+    { name:'Cab Controls, Lighting, and Equipment', items:[
+      ['Warning Lights', 'All light heads cycle with no dead or cracked lenses.'],
+      ['Siren and Air Horn', 'Siren and air horn sound on command.'],
+      ['Radio', 'Radio powers on and the portable is on its charger.']]},
+    { name:'Compartments', items:[
+      ['Compartment Doors', 'Doors latch and close without binding. Latches are not damaged.'],
+      ['Equipment Secured', 'Loose equipment is strapped down or in its marked spot.']]}
+  ],
+  scba: [
+    { name:'Spare SCBA Bottle Compartments', items:[
+      ['Spare Bottles Charged', 'Spare bottles show full pressure on the gauge.'],
+      ['Mounting Straps', 'Straps are tight and the bottles do not move.']]}
+  ]
+};
+
+/* =========================================================
+   HELPERS AND STATE
+   ========================================================= */
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid = () => Math.random().toString(36).slice(2, 10);
+const todayKey = () => new Date().toDateString();
+const dk = (apId, chk) => `${todayKey()}|${apId}|${chk}`;
+const when = ts => new Date(ts).toLocaleString([], { month:'short', day:'numeric', hour:'numeric', minute:'2-digit' });
+const clock = ts => new Date(ts).toLocaleTimeString([], { hour:'numeric', minute:'2-digit' });
+const roleOf = u => !u ? '' : !u.ms ? 'Volunteer, no login' : u.admin ? 'Admin, Microsoft login' : 'Crew, Microsoft login';
+const STATUS_WORDS = { none:'Not started', prog:'In progress', done:'Done today', fail:'Fail found' };
+
+function buildZones(chk, apId){
+  return TPL[chk].map((z, zi) => ({
+    id: `${apId}-${chk}-z${zi}`,
+    name: z.name,
+    items: z.items.map((it, ii) => ({ id: `${apId}-${chk}-z${zi}-i${ii}`, name: it[0], desc: it[1] }))
+  }));
+}
+
+function fresh(){
+  return {
+    user: null,
+    adminMode: false,
+    stOrder: { s131: APP_LIST.filter(a => a.st === 's131').map(a => a.id), s132: APP_LIST.filter(a => a.st === 's132').map(a => a.id) },
+    apEdits: {},
+    chkOrder: CHK_LIST.map(c => c.id),
+    zones: {},
+    drafts: {},
+    history: [],     // submitted checks
+    problems: [],    // open and resolved problems: check items and manual requests
+    screen: 'signin',
+    apId: null,
+    chk: null,
+    filter: 'all',
+    sheet: null,
+    open: {},
+    msErr: '',
+    volErr: '',
+    lastReport: null
+  };
+}
+
+const PERSIST = ['stOrder','apEdits','chkOrder','zones','drafts','history','problems'];
+function save(){
+  const o = {};
+  PERSIST.forEach(k => o[k] = S[k]);
+  try { localStorage.setItem(CONFIG.storageKey, JSON.stringify(o)); } catch(e) {}
+}
+function load(){
+  const base = fresh();
+  try {
+    const o = JSON.parse(localStorage.getItem(CONFIG.storageKey) || 'null');
+    if (o) PERSIST.forEach(k => { if (o[k] !== undefined) base[k] = o[k]; });
+  } catch(e) {}
+  return base;
+}
+let S = load();
+
+const isAdminMode = () => !!(S.user && S.user.admin && S.adminMode);
+const AP = id => ({ ...APP_LIST.find(a => a.id === id), ...(S.apEdits[id] || {}) });
+const stAps = st => S.stOrder[st].map(AP);
+const zKey = () => `${S.apId}|${S.chk}`;
+const getZones = (apId, chk) => S.zones[`${apId}|${chk}`] || buildZones(chk, apId);
+const cloneZones = z => JSON.parse(JSON.stringify(z));
+function getDraft(apId, chk){
+  const key = dk(apId, chk);
+  if (!S.drafts[key]) S.drafts[key] = { ans:{} };
+  return S.drafts[key];
+}
+// An item answer: { v:'pass'|'fail', fix:'fixed'|'unable'|null, note:'' }
+
+function openProblems(apId){
+  const cutoff = Date.now() - CONFIG.knownWindowDays * 86400000;
+  return S.problems.filter(p => p.status === 'open' && (!apId || p.apId === apId) && p.ts >= cutoff);
+}
+
+function chkStatus(apId, chk){
+  const items = getZones(apId, chk).flatMap(z => z.items);
+  const d = S.drafts[dk(apId, chk)];
+  const n = d ? items.filter(i => d.ans[i.id]).length : 0;
+  if (n) return { k:'prog', label:`In progress, ${n} of ${items.length} answered` };
+  const sub = S.history.find(h => h.day === todayKey() && h.apId === apId && h.chk === chk);
+  if (sub) return sub.fails.length
+    ? { k:'fail', label:`Submitted ${clock(sub.ts)}, ${sub.fails.length} ${sub.fails.length === 1 ? 'fail' : 'fails'}` }
+    : { k:'done', label:`Submitted ${clock(sub.ts)}, all passed` };
+  return { k:'none', label:'Not started' };
+}
+function apStatus(apId){
+  const sts = CHK_LIST.map(c => chkStatus(apId, c.id).k);
+  if (sts.includes('fail')) return 'fail';
+  if (sts.every(s => s === 'done')) return 'done';
+  if (sts.some(s => s !== 'none')) return 'prog';
+  return 'none';
+}
+
+/* =========================================================
+   SHELL AND VIEWS
+   ========================================================= */
+function navItems(){
+  const open = S.problems.filter(p => p.status === 'open').length;
+  return `
+    <button class="nav-item ${['aps','chks','check'].includes(S.screen) ? 'on' : ''}" data-act="go" data-screen="aps">Apparatus</button>
+    <button class="nav-item ${S.screen === 'problems' ? 'on' : ''}" data-act="go" data-screen="problems">Open problems ${open ? `<span class="count num">${open}</span>` : ''}</button>`;
+}
+
+function shell(main){
+  const u = S.user;
+  const open = S.problems.filter(p => p.status === 'open').length;
+  return `<div class="app">
+    <aside class="side">
+      <div class="brand"><img src="logo.png" alt="Clark County Fire District 13 logo"><div><b>FD13 Apparatus</b><small>Clark County Fire District 13</small></div></div>
+      <nav class="nav" aria-label="Main">${navItems()}</nav>
+      <div class="side-foot">
+        ${u.admin ? `<button class="nav-item" data-act="toggle-admin" aria-pressed="${S.adminMode}">Admin mode <span class="muted">${S.adminMode ? 'On' : 'Off'}</span></button>
+          ${S.adminMode ? `<button class="link-btn" data-act="export">Download data file</button><button class="link-btn" data-act="reset">Reset this device</button>` : ''}` : ''}
+        <div class="me"><b>${esc(u.name)}</b><small>${esc(roleOf(u))}</small></div>
+        <button class="link-btn" data-act="signout">Sign out</button>
+      </div>
+    </aside>
+    <main class="main" id="main">${main}</main>
+    <nav class="bottom-nav" aria-label="Main">
+      <button class="${['aps','chks','check'].includes(S.screen) ? 'on' : ''}" data-act="go" data-screen="aps">Apparatus</button>
+      <button class="${S.screen === 'problems' ? 'on' : ''}" data-act="go" data-screen="problems">Problems${open ? ` (${open})` : ''}</button>
+      ${u.admin ? `<button data-act="toggle-admin">${S.adminMode ? 'Admin on' : 'Admin off'}</button>` : ''}
+    </nav>
+  </div>`;
+}
+
+function viewSignin(){
+  const configured = !!CONFIG.msal.clientId;
+  return `<div class="signin"><div class="signin-col">
+    <div class="brand-lg"><img src="logo.png" alt="Clark County Fire District 13 logo"><div><h1>FD13 Apparatus Check</h1><div class="muted">Clark County Fire District 13</div></div></div>
+
+    <section class="card pad">
+      <h2>Paid staff</h2>
+      <p class="muted" style="margin:6px 0 0">Sign in with your district Microsoft account. Admin access comes from the account.</p>
+      <div style="margin-top:16px"><button class="btn-primary block" data-act="ms-open">Sign in with Microsoft</button></div>
+      ${configured ? '' : '<p class="note">Demo mode. Microsoft sign in is not configured yet, so this shows an account picker.</p>'}
+      <p class="err-text">${esc(S.msErr)}</p>
+    </section>
+
+    <div class="divider"></div>
+
+    <section class="card pad">
+      <h2>Volunteer crews</h2>
+      <p class="muted" style="margin:6px 0 0">No login. Enter your name and continue. Your name goes on the checks you submit.</p>
+      <form class="stack" data-form="volunteer">
+        <label for="vname">Your name</label>
+        <input id="vname" autocomplete="name" placeholder="First name and last initial">
+        <p class="err-text">${esc(S.volErr)}</p>
+        <div><button class="btn-second" type="submit">Continue</button></div>
+      </form>
+    </section>
+  </div></div>`;
+}
+
+function pagehead(crumbs, title, sub, actions){
+  return `<header class="pagehead"><div>
+      ${crumbs ? `<nav class="crumbs" aria-label="Breadcrumb">${crumbs}</nav>` : ''}
+      <h1>${esc(title)}</h1>
+      ${sub ? `<p class="sub">${esc(sub)}</p>` : ''}
+    </div>${actions ? `<div>${actions}</div>` : ''}</header>`;
+}
+
+function viewAps(){
+  const adm = isAdminMode();
+  const all = APP_LIST.map(a => ({ a, s: apStatus(a.id) }));
+  const count = k => all.filter(x => k === 'all' || x.s === k).length;
+  const failing = all.filter(x => x.s === 'fail').map(x => AP(x.a.id).name);
+  const unable = S.problems.filter(p => p.status === 'open' && p.kind === 'check').length;
+  const finding = failing.length
+    ? `<b>${failing.length} ${failing.length === 1 ? 'unit has' : 'units have'} a fail today:</b> ${failing.map(esc).join(', ')}.${unable ? ` ${unable} open ${unable === 1 ? 'problem' : 'problems'} on the list.` : ''}`
+    : `No fails today.${unable ? ` ${unable} open ${unable === 1 ? 'problem' : 'problems'} still on the list.` : ''}`;
+  const filters = [['all','All'],['none','Not started'],['prog','In progress'],['done','Done'],['fail','Fail']];
+  const cards = `<div class="counts" role="group" aria-label="Filter units">${filters.map(([k,l]) =>
+      `<button class="count-card ${k === 'fail' ? 'fail' : ''} ${S.filter === k ? 'on' : ''}" data-act="filter" data-id="${k}" aria-pressed="${S.filter === k}">
+        <span>${l}</span><strong class="num">${count(k)}</strong></button>`).join('')}</div>`;
+  const keep = x => S.filter === 'all' || x.s === S.filter;
+  const stations = STATIONS.map(st => {
+    const rows = stAps(st.id).map(a => ({ a, s: apStatus(a.id) })).filter(keep);
+    return `<section class="station">
+      <div class="station-head"><h2>${esc(st.name)}</h2><span>${esc(st.addr)}</span></div>
+      <div class="list" data-station="${st.id}">${rows.map(({a, s}) => apRow(a, s, adm)).join('') || '<p class="muted" style="padding:14px;margin:0">No units match this filter.</p>'}</div>
+    </section>`;
+  }).join('');
+  return shell(`${pagehead(null, 'Apparatus', 'Tap a unit to start its checks.')}
+    <p class="finding">${finding}</p>
+    <div style="height:18px"></div>
+    ${adm ? `<p class="banner">Admin mode. Drag the grip to reorder. Edit changes a unit's name and details.</p>` : ''}
+    ${cards}
+    ${stations}`);
+}
+
+function apRow(a, s, adm){
+  return `<div class="row" data-id="${a.id}">
+    ${adm ? '<span class="grip" data-handle aria-label="Drag to reorder">&#8801;</span>' : ''}
+    <span class="dot ${s}" aria-hidden="true"></span>
+    <button class="row-main" data-act="open-ap" data-id="${a.id}"><span class="row-title">${esc(a.name)}</span><span class="row-sub">${esc(a.info)}</span></button>
+    <span class="row-meta ${s}">${STATUS_WORDS[s]}</span>
+    ${adm ? `<button class="edit-btn" data-act="edit-ap" data-id="${a.id}">Edit</button>` : '<span></span>'}
+    <button class="ghost-btn ${s === 'fail' ? 'fail' : ''}" data-act="req" data-id="${a.id}">Report a problem</button>
+  </div>`;
+}
+
+function viewChks(){
+  const a = AP(S.apId);
+  const adm = isAdminMode();
+  const probs = openProblems(a.id);
+  const rows = S.chkOrder.map(id => {
+    const c = CHK_LIST.find(x => x.id === id);
+    const st = chkStatus(a.id, id);
+    return `<div class="row" data-id="${id}">
+      ${adm ? '<span class="grip" data-handle aria-label="Drag to reorder">&#8801;</span>' : ''}
+      <span class="dot ${st.k}" aria-hidden="true"></span>
+      <button class="row-main" data-act="open-chk" data-id="${id}"><span class="row-title">${esc(c.name)}</span><span class="row-sub">${esc(st.label)}</span></button>
+      <span class="row-meta ${st.k === 'fail' ? 'fail' : st.k === 'done' ? 'done' : ''}">${st.k === 'none' ? 'Start' : st.k === 'prog' ? 'Continue' : 'Review'}</span>
+      <span></span><span></span>
+    </div>`;
+  }).join('');
+  return shell(`${pagehead(`<button data-act="go" data-screen="aps">Apparatus</button><span>/</span><span>${esc(a.name)}</span>`,
+      a.name, a.info, `<button class="ghost-btn" data-act="req" data-id="${a.id}">Report a problem</button>`)}
+    ${probs.length ? problemsCard(probs, 'Known problems on this unit', 'Still broken or now fixed? Tap one, then open the checklist.') : ''}
+    ${adm ? `<p class="banner">Admin mode. Drag the grip to reorder checklists.</p>` : ''}
+    <section class="station"><div class="list" data-checklists>${rows}</div></section>`);
+}
+
+function problemsCard(list, title, sub){
+  return `<section class="card problems-card">
+    <div class="card-head"><div><h2>${esc(title)}</h2><div class="muted" style="font-size:13px">${esc(sub)}</div></div><span class="tag red num">${list.length}</span></div>
+    ${list.map(p => `<div class="problem">
+      <div class="problem-top"><span><b style="font-weight:500">${esc(p.label)}</b> <span class="muted">${esc(p.apName)}</span></span><span class="who">${esc(when(p.ts))}</span></div>
+      ${p.note ? `<div>${esc(p.note)}</div>` : ''}
+      <div class="who">Reported by ${esc(p.by)}${p.kind === 'check' ? ', unable to fix on the spot' : ''}</div>
+      <div class="problem-actions">
+        ${p.kind === 'check' ? `<button class="btn-second" data-act="prob-broken" data-id="${p.id}">Still broken</button>` : ''}
+        <button class="btn-second" data-act="prob-fixed" data-id="${p.id}">Now fixed</button>
+      </div>
+    </div>`).join('')}
+  </section>`;
+}
+
+function itemHTML(i, zid, adm, d){
+  const an = d.ans[i.id];
+  const open = S.open[i.id];
+  const fail = an && an.v === 'fail';
+  const needNote = fail && an.fix === 'unable' && !(an.note || '').trim();
+  return `<div class="item ${fail ? 'fail' : ''}" data-id="${i.id}">
+    <div class="item-top">
+      ${adm ? '<span class="grip" data-handle aria-label="Drag to reorder">&#8801;</span>' : ''}
+      <div class="item-name">${esc(i.name)}</div>
+      ${adm ? `<button class="edit-btn" data-act="edit-item" data-item="${i.id}" data-zone="${zid}">Edit</button>` : ''}
+      <button class="details-btn" data-act="details" data-item="${i.id}" aria-expanded="${!!open}">${open ? 'Hide details' : 'Details'}</button>
+    </div>
+    ${open ? `<p class="item-desc">${esc(i.desc)}</p>` : ''}
+    <div class="seg" role="group" aria-label="${esc(i.name)} result">
+      <button class="pass ${an && an.v === 'pass' ? 'on' : ''}" data-act="ans" data-item="${i.id}" data-val="pass" aria-pressed="${an && an.v === 'pass'}">Pass</button>
+      <button class="fail ${fail ? 'on' : ''}" data-act="ans" data-item="${i.id}" data-val="fail" aria-pressed="${fail}">Fail</button>
+    </div>
+    ${fail ? `<div class="fixwhat">
+      <div class="label">What happened to it?</div>
+      <div class="fixgrid" role="group" aria-label="Fixed or not">
+        <button class="${an.fix === 'fixed' ? 'on' : ''}" data-act="fix" data-item="${i.id}" data-fix="fixed" aria-pressed="${an.fix === 'fixed'}">Fixed on the spot</button>
+        <button class="unable ${an.fix === 'unable' ? 'on' : ''}" data-act="fix" data-item="${i.id}" data-fix="unable" aria-pressed="${an.fix === 'unable'}">Unable to fix</button>
+      </div>
+      <div class="note-field">
+        <label class="sr" for="note-${i.id}">Note for ${esc(i.name)}</label>
+        <textarea id="note-${i.id}" data-note="${i.id}" placeholder="${an.fix === 'unable' ? 'Why it cannot be fixed now (required)' : 'Note (optional)'}">${esc(an.note || '')}</textarea>
+        ${needNote ? '<p class="note-hint">A reason is needed before you can submit.</p>' : ''}
+      </div>
+    </div>` : ''}
+  </div>`;
+}
+
+function zoneHTML(z, adm, d){
+  return `<section class="card check-card zone-block" data-id="${z.id}" id="z-${z.id}">
+    <div class="check-head">
+      ${adm ? '<span class="grip" data-handle aria-label="Drag to reorder">&#8801;</span>' : ''}
+      <h2>${esc(z.name)}</h2>
+      ${adm ? `<button class="edit-btn" data-act="edit-zone" data-zone="${z.id}">Edit zone</button>` : ''}
+    </div>
+    <div class="item-list" data-zone="${z.id}">${z.items.map(i => itemHTML(i, z.id, adm, d)).join('')}</div>
+    ${adm ? `<button class="add-row" data-act="add-item" data-zone="${z.id}">+ Add check</button>` : ''}
+  </section>`;
+}
+
+// Returns every reason the check cannot be submitted yet.
+function missingFor(apId, chk){
+  const zones = getZones(apId, chk);
+  const d = getDraft(apId, chk);
+  const out = [];
+  zones.forEach(z => z.items.forEach(i => {
+    const an = d.ans[i.id];
+    if (!an) out.push({ zid: z.id, iid: i.id, text: `${z.name}: ${i.name}, not answered` });
+    else if (an.v === 'fail' && !an.fix) out.push({ zid: z.id, iid: i.id, text: `${z.name}: ${i.name}, choose Fixed on the spot or Unable to fix` });
+    else if (an.v === 'fail' && an.fix === 'unable' && !(an.note || '').trim()) out.push({ zid: z.id, iid: i.id, text: `${z.name}: ${i.name}, reason needed` });
+  }));
+  return out;
+}
+
+function viewCheck(){
+  const a = AP(S.apId);
+  const chk = CHK_LIST.find(c => c.id === S.chk);
+  const adm = isAdminMode();
+  const zones = getZones(a.id, chk.id);
+  const d = getDraft(a.id, chk.id);
+  const items = zones.flatMap(z => z.items);
+  const answered = items.filter(i => d.ans[i.id]).length;
+  const fails = items.filter(i => d.ans[i.id] && d.ans[i.id].v === 'fail');
+  const unable = fails.filter(i => d.ans[i.id].fix === 'unable').length;
+  const missing = missingFor(a.id, chk.id);
+  const pills = zones.map(z => {
+    const hasFail = z.items.some(i => d.ans[i.id] && d.ans[i.id].v === 'fail');
+    const complete = z.items.length && z.items.every(i => d.ans[i.id]);
+    return `<a class="${hasFail ? 'fail' : complete ? 'done' : ''}" href="#z-${z.id}">${esc(z.name)}</a>`;
+  }).join('');
+  const ready = items.length && missing.length === 0;
+  const finding = fails.length
+    ? `<b>${fails.length} ${fails.length === 1 ? 'fail' : 'fails'} so far.</b> ${unable ? `${unable} unable to fix and goes to the admins.` : 'All fixed on the spot so far.'}`
+    : (items.length - answered) ? `${items.length - answered} ${items.length - answered === 1 ? 'check' : 'checks'} left to answer.` : 'Every check answered.';
+  const carried = openProblems(a.id).filter(p => p.kind === 'check');
+  return shell(`
+    ${pagehead(`<button data-act="go" data-screen="aps">Apparatus</button><span>/</span><button data-act="back">${esc(a.name)}</button><span>/</span><span>${esc(chk.name)}</span>`,
+      chk.name, `${a.name}, ${answered} of ${items.length} answered`)}
+    <p class="finding">${finding}</p>
+    <div style="height:16px"></div>
+    ${carried.length ? problemsCard(carried, 'Known problems on this unit', 'Carried from earlier checks. Still broken fills in this check. Now fixed closes it.') : ''}
+    <nav class="zjump" aria-label="Zones">${pills}</nav>
+    ${adm ? `<p class="banner">Admin mode. Drag grips to reorder zones and checks. Edit changes names and descriptions.</p>` : ''}
+    <div class="zones">${zones.map(z => zoneHTML(z, adm, d)).join('')}</div>
+    ${adm ? `<button class="btn-second" data-act="add-zone">+ Add zone</button>` : ''}
+    <div class="sticky-bar">
+      <p>${answered} of ${items.length} answered${missing.length && answered === items.length ? `, ${missing.length} to finish` : ''}</p>
+      <button class="btn-primary" data-act="submit" aria-disabled="${!ready}">
+        ${ready ? (fails.length ? `Submit with ${fails.length} ${fails.length === 1 ? 'fail' : 'fails'}` : 'Submit checklist') : 'To complete'}
+      </button>
+    </div>`);
+}
+
+function viewProblems(){
+  const adm = isAdminMode();
+  const open = S.problems.filter(p => p.status === 'open').sort((x, y) => y.ts - x.ts);
+  const done = S.problems.filter(p => p.status !== 'open').sort((x, y) => y.ts - x.ts).slice(0, 15);
+  const row = p => `<div class="problem">
+      <div class="problem-top"><span><b style="font-weight:500">${esc(p.label)}</b> <span class="muted">${esc(p.apName)}</span></span>
+        <span class="tag ${p.kind === 'check' ? 'red' : ''}">${p.kind === 'check' ? 'Unable to fix' : 'Request'}</span></div>
+      ${p.note ? `<div>${esc(p.note)}</div>` : ''}
+      <div class="who">${esc(p.by)}, ${esc(when(p.ts))}${p.status !== 'open' ? `. ${p.status === 'fixed' ? 'Marked fixed' : 'Closed'} by ${esc(p.closedBy || '')}` : ''}</div>
+      <div class="problem-actions">
+        ${p.status === 'open'
+          ? `${p.kind === 'check' ? `<button class="btn-second" data-act="prob-broken" data-id="${p.id}">Still broken</button>` : ''}<button class="btn-second" data-act="prob-fixed" data-id="${p.id}">Now fixed</button>`
+          : `<button class="btn-second" data-act="prob-reopen" data-id="${p.id}">Reopen</button>`}
+      </div>
+    </div>`;
+  return shell(`${pagehead(null, 'Open problems', `${open.length} open. Items marked unable to fix on a check show here with the reason.`,
+      `<button class="btn-second" data-act="req" data-id="">Report a problem</button>`)}
+    <section class="card problems-card"><div class="card-head"><h2>Open</h2><span class="tag">${open.length}</span></div>
+      ${open.map(row).join('') || '<p class="muted" style="padding:14px;margin:0">Nothing open.</p>'}</section>
+    ${done.length ? `<section class="card problems-card"><div class="card-head"><h2>Recently closed</h2></div>${done.map(row).join('')}</section>` : ''}`);
+}
+
+const VIEWS = { aps:viewAps, chks:viewChks, check:viewCheck, problems:viewProblems };
+
+function sheetHTML(){
+  const sh = S.sheet;
+  if (!sh) return '';
+  let title = '', body = '', actions = '';
+  const cancel = '<button class="btn-second" data-act="close">Cancel</button>';
+  switch (sh.type){
+    case 'ms': {
+      title = 'Demo account picker';
+      body = `<p class="muted" style="margin:0">Microsoft sign in is not configured yet. Pick an account to try the app. Admin access follows the account.</p>
+        ${ROSTER.map(p => `<button class="acct" data-act="ms-pick" data-id="${p.id}"><span>${esc(p.name)}</span><small>${p.admin ? 'Admin' : 'Crew'}</small></button>`).join('')}`;
+      actions = cancel;
+      break;
+    }
+    case 'missing': {
+      const list = missingFor(S.apId, S.chk);
+      title = `${list.length} ${list.length === 1 ? 'thing' : 'things'} to finish`;
+      body = `<p class="muted" style="margin:0">Tap a line to jump to it.</p><ol class="missing" style="padding-left:20px">
+        ${list.map(m => `<li><button data-act="jump" data-zone="${m.zid}" data-item="${m.iid}">${esc(m.text)}</button></li>`).join('')}</ol>`;
+      actions = '<button class="btn-second" data-act="close">Close</button>';
+      break;
+    }
+    case 'report': {
+      const r = S.lastReport;
+      title = r ? r.headline : 'Report';
+      body = `<div class="report" id="report-text">${esc(r ? r.text : '')}</div>`;
+      actions = `<button class="btn-second" data-act="copy-report">Copy report</button><button class="btn-primary" data-act="close">Done</button>`;
+      break;
+    }
+    case 'request': {
+      title = 'Report a problem';
+      body = `<label for="rap">Which unit</label><select id="rap"><option value="">General or station</option>
+        ${APP_LIST.map(a => `<option value="${a.id}" ${sh.apId === a.id ? 'selected' : ''}>${esc(AP(a.id).name)}</option>`).join('')}</select>
+        <label for="rtext">What is the problem?</label><textarea id="rtext" placeholder="Example: Brush 51 pump panel light is out."></textarea>`;
+      actions = cancel + '<button class="btn-primary" data-act="sheet-save">Send</button>';
+      break;
+    }
+    case 'edit-ap': {
+      const a = AP(sh.id);
+      title = 'Edit unit';
+      body = `<label for="ename">Name</label><input id="ename" value="${esc(a.name)}">
+        <label for="einfo">Make, model, year</label><input id="einfo" value="${esc(a.info)}">`;
+      actions = cancel + '<button class="btn-primary" data-act="sheet-save">Save</button>';
+      break;
+    }
+    case 'edit-zone': {
+      const z = getZones(S.apId, S.chk).find(x => x.id === sh.zid);
+      title = 'Edit zone';
+      body = `<label for="ename">Zone name</label><input id="ename" value="${esc(z ? z.name : '')}">`;
+      actions = cancel + '<button class="btn-primary" data-act="sheet-save">Save</button>';
+      break;
+    }
+    case 'edit-item': {
+      const z = getZones(S.apId, S.chk).find(x => x.id === sh.zid);
+      const it = z && z.items.find(x => x.id === sh.iid);
+      title = 'Edit check';
+      body = `<label for="ename">Check name</label><input id="ename" value="${esc(it ? it.name : '')}">
+        <label for="edesc">What to verify</label><textarea id="edesc">${esc(it ? it.desc : '')}</textarea>`;
+      actions = '<button class="btn-danger" data-act="del-item">Delete check</button>' + cancel + '<button class="btn-primary" data-act="sheet-save">Save</button>';
+      break;
+    }
+    case 'reset':
+      title = 'Reset this device?';
+      body = '<p class="muted" style="margin:0">This clears checks, problems, and admin edits saved in this browser. Download the data file first if you want to keep the edits.</p>';
+      actions = cancel + '<button class="btn-danger" data-act="reset-yes">Reset</button>';
+      break;
+  }
+  return `<div class="scrim" data-act="close"></div>
+    <div class="sheet" role="dialog" aria-modal="true" aria-label="${esc(title)}"><h3>${esc(title)}</h3>${body}<div class="actions">${actions}</div></div>`;
+}
+
+/* =========================================================
+   RENDER, DRAG, TOAST
+   ========================================================= */
+function render(){
+  const y = window.scrollY;
+  let html;
+  if (!S.user) { S.screen = 'signin'; html = viewSignin(); }
+  else html = (VIEWS[S.screen] || VIEWS.aps)();
+  document.getElementById('app').innerHTML = html;
+  document.getElementById('sheet').innerHTML = sheetHTML();
+  bindSort();
+  window.scrollTo(0, y);
+}
+
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toast.t);
+  toast.t = setTimeout(() => t.classList.remove('show'), 2600);
+}
+
+function sortable(container, itemSel, handleSel, onDone){
+  container.querySelectorAll(':scope > ' + itemSel).forEach(el => {
+    const handle = el.querySelector(handleSel);
+    if (!handle) return;
+    handle.addEventListener('pointerdown', e => {
+      e.preventDefault();
+      e.stopPropagation();
+      const rect = el.getBoundingClientRect();
+      const offX = e.clientX - rect.left, offY = e.clientY - rect.top;
+      const ghost = el.cloneNode(true);
+      Object.assign(ghost.style, {
+        position:'fixed', left: rect.left + 'px', top: rect.top + 'px', width: rect.width + 'px',
+        pointerEvents:'none', zIndex:'100', background:'#fff', boxShadow:'0 8px 20px rgba(0,0,0,.18)', borderRadius:'8px', border:'1px solid #d4d4d4'
+      });
+      document.body.appendChild(ghost);
+      el.classList.add('dragging');
+      const move = ev => {
+        ghost.style.left = (ev.clientX - offX) + 'px';
+        ghost.style.top = (ev.clientY - offY) + 'px';
+        const under = document.elementFromPoint(ev.clientX, ev.clientY);
+        const target = under && under.closest(itemSel);
+        if (target && target !== el && target.parentElement === container){
+          const sibs = [...container.children].filter(c => c.matches(itemSel));
+          if (sibs.indexOf(target) > sibs.indexOf(el)) container.insertBefore(el, target.nextSibling);
+          else container.insertBefore(el, target);
+        }
+      };
+      const up = () => {
+        window.removeEventListener('pointermove', move);
+        window.removeEventListener('pointerup', up);
+        window.removeEventListener('pointercancel', up);
+        ghost.remove();
+        el.classList.remove('dragging');
+        onDone([...container.children].filter(c => c.matches(itemSel)).map(c => c.dataset.id));
+      };
+      window.addEventListener('pointermove', move);
+      window.addEventListener('pointerup', up);
+      window.addEventListener('pointercancel', up);
+    });
+  });
+}
+
+function commit(){ save(); render(); }
+
+function bindSort(){
+  if (!isAdminMode()) return;
+  if (S.screen === 'aps'){
+    document.querySelectorAll('.list[data-station]').forEach(g => {
+      sortable(g, '.row', '[data-handle]', ids => { S.stOrder[g.dataset.station] = ids; commit(); });
+    });
+  }
+  if (S.screen === 'chks'){
+    const c = document.querySelector('[data-checklists]');
+    if (c) sortable(c, '.row', '[data-handle]', ids => { S.chkOrder = ids; commit(); });
+  }
+  if (S.screen === 'check'){
+    const zc = document.querySelector('.zones');
+    if (zc) sortable(zc, '.zone-block', '.check-head [data-handle]', ids => {
+      const zs = getZones(S.apId, S.chk);
+      S.zones[zKey()] = ids.map(id => zs.find(z => z.id === id));
+      commit();
+    });
+    document.querySelectorAll('.item-list').forEach(il => {
+      sortable(il, '.item', '[data-handle]', ids => {
+        const zs = cloneZones(getZones(S.apId, S.chk));
+        const z = zs.find(x => x.id === il.dataset.zone);
+        z.items = ids.map(id => z.items.find(i => i.id === id));
+        S.zones[zKey()] = zs;
+        commit();
+      });
+    });
+  }
+}
+
+/* =========================================================
+   CHECK LOGIC
+   ========================================================= */
+function answer(iid, val){
+  const d = getDraft(S.apId, S.chk);
+  const cur = d.ans[iid];
+  if (cur && cur.v === val) delete d.ans[iid];
+  else if (val === 'pass') d.ans[iid] = { v:'pass', fix:null, note:'' };
+  else d.ans[iid] = { v:'fail', fix: cur && cur.fix || null, note: cur && cur.note || '' };
+}
+
+function setFix(iid, fix){
+  const d = getDraft(S.apId, S.chk);
+  const cur = d.ans[iid];
+  if (!cur || cur.v !== 'fail') return;
+  cur.fix = cur.fix === fix ? null : fix;
+}
+
+// Known problems: "Still broken" marks the matching item as a fail that is unable to fix,
+// with the earlier note carried in. "Now fixed" closes the record.
+function problemBroken(id){
+  const p = S.problems.find(x => x.id === id);
+  if (!p) return;
+  p.ts = Date.now();
+  p.by = S.user.name;
+  const zones = getZones(p.apId, p.chk || CHK_LIST[0].id);
+  const hit = zones.flatMap(z => z.items).find(i => i.name === p.label);
+  if (hit && S.apId === p.apId && S.chk) {
+    const d = getDraft(p.apId, S.chk);
+    d.ans[hit.id] = { v:'fail', fix:'unable', note: p.note || '' };
+    toast(`${p.label} marked still broken on this check.`);
+  } else {
+    toast('Still broken noted. It stays on the list.');
+  }
+}
+
+function problemClose(id, status){
+  const p = S.problems.find(x => x.id === id);
+  if (!p) return;
+  p.status = status;
+  p.closedBy = S.user.name;
+  p.closedAt = Date.now();
+  toast(status === 'fixed' ? 'Marked fixed.' : 'Closed.');
+}
+
+function buildReport(apId, chk, by, dateStr){
+  const a = AP(apId);
+  const chkName = CHK_LIST.find(c => c.id === chk).name;
+  const zones = getZones(apId, chk);
+  const d = getDraft(apId, chk);
+  const items = zones.flatMap(z => z.items.map(i => ({ i, z })));
+  const fails = items.filter(x => d.ans[x.i.id].v === 'fail');
+  const unable = fails.filter(x => d.ans[x.i.id].fix === 'unable');
+  const fixed = fails.filter(x => d.ans[x.i.id].fix === 'fixed');
+  const passed = items.length - fails.length;
+  const lines = [];
+  lines.push(`${a.name}: ${chkName}`);
+  lines.push(`Checked by: ${by}`);
+  lines.push(`Date: ${dateStr}`);
+  lines.push('');
+  lines.push(fails.length ? `${fails.length} ${fails.length === 1 ? 'FLAG' : 'FLAGS'}` : 'ALL CLEAR');
+  lines.push(`${passed} of ${items.length} passed`);
+  if (unable.length){
+    lines.push('');
+    lines.push('UNABLE TO FIX, IMMEDIATE ADMIN REVIEW');
+    unable.forEach(x => lines.push(`  ${x.z.name}: ${x.i.name}. ${d.ans[x.i.id].note}`));
+  }
+  if (fails.length){
+    lines.push('');
+    lines.push('FLAGS');
+    fails.forEach(x => {
+      const an = d.ans[x.i.id];
+      const how = an.fix === 'fixed' ? 'Fixed on the spot' : an.fix === 'unable' ? 'Unable to fix' : 'Not decided';
+      lines.push(`  ${x.z.name}: ${x.i.name}. ${how}${an.note ? '. Note: ' + an.note : ''}`);
+    });
+  }
+  return { text: lines.join('\n'), headline: fails.length ? `${fails.length} ${fails.length === 1 ? 'flag' : 'flags'}` : 'All clear', unable, fixed, fails, passed, total: items.length };
+}
+
+async function sendEmail(subject, text){
+  const e = CONFIG.emailjs;
+  if (!e.publicKey || !e.serviceId || !e.templateId || !window.emailjs) return false;
+  try {
+    emailjs.init({ publicKey: e.publicKey });
+    await emailjs.send(e.serviceId, e.templateId, { to_email: e.to, subject, message: text });
+    return true;
+  } catch (err) { return false; }
+}
+
+function submitCheck(){
+  const a = AP(S.apId);
+  const d = getDraft(S.apId, S.chk);
+  if (missingFor(S.apId, S.chk).length) { S.sheet = { type:'missing' }; return; }
+  const dateStr = new Date().toLocaleString();
+  const rep = buildReport(S.apId, S.chk, S.user.name, dateStr);
+  const chkName = CHK_LIST.find(c => c.id === S.chk).name;
+  const fails = rep.fails.map(x => ({
+    zone: x.z.name, item: x.i.name, fix: d.ans[x.i.id].fix, note: d.ans[x.i.id].note || ''
+  }));
+  S.history.unshift({ id: uid(), day: todayKey(), ts: Date.now(), apId: a.id, apName: a.name, chk: S.chk, chkName, by: S.user.name, fails });
+  // Unable to fix goes to the open problems list. Repeats update the same record.
+  fails.filter(f => f.fix === 'unable').forEach(f => {
+    const existing = S.problems.find(p => p.status === 'open' && p.kind === 'check' && p.apId === a.id && p.label === f.item);
+    if (existing) { existing.note = f.note; existing.ts = Date.now(); existing.by = S.user.name; existing.chk = S.chk; }
+    else S.problems.unshift({ id: uid(), kind:'check', apId: a.id, apName: a.name, chk: S.chk, key: f.zone + '|' + f.item, label: f.item, note: f.note, by: S.user.name, ts: Date.now(), status:'open' });
+  });
+  // Items answered Fixed on the spot close any matching open problem.
+  fails.filter(f => f.fix === 'fixed').forEach(f => {
+    S.problems.filter(p => p.status === 'open' && p.kind === 'check' && p.apId === a.id && p.label === f.item)
+      .forEach(p => { p.status = 'fixed'; p.closedBy = S.user.name; p.closedAt = Date.now(); });
+  });
+  delete S.drafts[dk(S.apId, S.chk)];
+  S.lastReport = { headline: rep.headline, text: rep.text };
+  S.sheet = { type:'report' };
+  S.screen = 'chks';
+  sendEmail(`${a.name} ${chkName}: ${rep.headline}`, rep.text).then(ok => {
+    if (ok) toast('Report emailed.');
+  });
+  toast(rep.fails && fails.length ? 'Submitted. Supervisor notified.' : 'Submitted. All checks passed.');
+}
+
+function sheetSave(){
+  const sh = S.sheet;
+  const v = id => ((document.getElementById(id) || {}).value || '').trim();
+  switch (sh.type){
+    case 'request': {
+      const text = v('rtext');
+      if (!text) return;
+      const ap = v('rap');
+      const a = ap ? AP(ap) : null;
+      S.problems.unshift({ id: uid(), kind:'request', apId: a ? a.id : null, apName: a ? a.name : 'General', chk: null, key: null, label: 'Request', note: text, by: S.user.name, ts: Date.now(), status:'open' });
+      S.sheet = null;
+      toast('Sent to the admins.');
+      break;
+    }
+    case 'edit-ap': {
+      const base = AP(sh.id);
+      S.apEdits[sh.id] = { name: v('ename') || base.name, info: v('einfo') || base.info };
+      S.sheet = null;
+      break;
+    }
+    case 'edit-zone': {
+      const zs = cloneZones(getZones(S.apId, S.chk));
+      const z = zs.find(x => x.id === sh.zid);
+      if (z) z.name = v('ename') || z.name;
+      S.zones[zKey()] = zs;
+      S.sheet = null;
+      break;
+    }
+    case 'edit-item': {
+      const zs = cloneZones(getZones(S.apId, S.chk));
+      const z = zs.find(x => x.id === sh.zid);
+      const it = z && z.items.find(x => x.id === sh.iid);
+      if (it){ it.name = v('ename') || it.name; it.desc = v('edesc'); }
+      S.zones[zKey()] = zs;
+      S.sheet = null;
+      break;
+    }
+  }
+}
+
+function signIn(user){
+  S.user = user;
+  S.adminMode = false;
+  S.screen = 'aps';
+  S.filter = 'all';
+  S.sheet = null;
+  S.msErr = '';
+  S.volErr = '';
+}
+
+/* =========================================================
+   MICROSOFT SIGN IN (MSAL). Runs only when CONFIG.msal.clientId is set.
+   ========================================================= */
+let msalApp = null;
+function msalReady(){
+  if (!CONFIG.msal.clientId || !window.msal) return null;
+  if (!msalApp) {
+    msalApp = new msal.PublicClientApplication({
+      auth: {
+        clientId: CONFIG.msal.clientId,
+        authority: 'https://login.microsoftonline.com/' + CONFIG.msal.tenantId,
+        redirectUri: window.location.origin + window.location.pathname
+      },
+      cache: { cacheLocation: 'localStorage' }
+    });
+  }
+  return msalApp;
+}
+
+async function msalSignIn(){
+  const app = msalReady();
+  if (!app) { S.sheet = { type:'ms' }; render(); return; }
+  try {
+    const acc = app.getAllAccounts()[0];
+    if (acc) return msalUser(acc);
+    await app.loginRedirect({ scopes: ['openid', 'profile', 'email'] });
+  } catch (err) {
+    S.msErr = 'Microsoft sign in did not complete. Try again.';
+    render();
+  }
+}
+
+function msalUser(acc){
+  const email = (acc.username || '').toLowerCase();
+  const admin = CONFIG.msal.adminEmails.map(x => x.toLowerCase()).includes(email);
+  signIn({ id: 'ms-' + email, name: acc.name || email, email, admin, ms: true });
+  save();
+  render();
+}
+
+async function msalHandleRedirect(){
+  const app = msalReady();
+  if (!app) return;
+  try {
+    const res = await app.handleRedirectPromise();
+    const acc = (res && res.account) || app.getAllAccounts()[0];
+    if (acc) msalUser(acc);
+  } catch (err) {
+    S.msErr = 'Microsoft sign in could not finish. Try again.';
+  }
+}
+
+/* =========================================================
+   EVENTS
+   ========================================================= */
+document.addEventListener('submit', e => {
+  const form = e.target.closest('[data-form="volunteer"]');
+  if (!form) return;
+  e.preventDefault();
+  const name = ((document.getElementById('vname') || {}).value || '').trim();
+  if (!name){ S.volErr = 'Enter your name to continue.'; render(); return; }
+  signIn({ id: 'vol-' + uid(), name, admin: false, ms: false });
+  save();
+  render();
+});
+
+document.addEventListener('click', e => {
+  const el = e.target.closest('[data-act]');
+  if (!el) return;
+  const act = el.dataset.act, id = el.dataset.id;
+  switch (act){
+    case 'ms-open': msalSignIn(); return;
+    case 'ms-pick': {
+      const p = ROSTER.find(x => x.id === id);
+      signIn({ id: p.id, name: p.name, email: p.email, admin: !!p.admin, ms: true });
+      break;
+    }
+    case 'sheet-save': sheetSave(); break;
+    case 'close': S.sheet = null; break;
+    case 'signout': S.user = null; S.adminMode = false; S.screen = 'signin'; S.sheet = null; break;
+    case 'go': S.screen = el.dataset.screen; break;
+    case 'back': S.sheet = null; S.screen = { check:'chks', chks:'aps' }[S.screen] || 'aps'; break;
+    case 'filter': S.filter = id; break;
+    case 'open-ap': S.apId = id; S.screen = 'chks'; break;
+    case 'open-chk': S.chk = id; S.screen = 'check'; break;
+    case 'ans': answer(el.dataset.item, el.dataset.val); break;
+    case 'fix': setFix(el.dataset.item, el.dataset.fix); break;
+    case 'details': S.open[el.dataset.item] = !S.open[el.dataset.item]; break;
+    case 'submit': submitCheck(); break;
+    case 'jump': {
+      S.sheet = null;
+      render();
+      const t = document.querySelector(`.item[data-id="${el.dataset.item}"]`);
+      if (t) t.scrollIntoView({ block:'center' });
+      return;
+    }
+    case 'copy-report': {
+      const txt = S.lastReport ? S.lastReport.text : '';
+      if (navigator.clipboard) navigator.clipboard.writeText(txt).then(() => toast('Report copied.'), () => toast('Select the text and copy it.'));
+      else toast('Select the text and copy it.');
+      return;
+    }
+    case 'prob-broken': problemBroken(id); break;
+    case 'prob-fixed': problemClose(id, 'fixed'); break;
+    case 'prob-reopen': { const p = S.problems.find(x => x.id === id); if (p) { p.status = 'open'; } break; }
+    case 'toggle-admin': if (S.user && S.user.admin) S.adminMode = !S.adminMode; break;
+    case 'edit-ap': S.sheet = { type:'edit-ap', id }; break;
+    case 'edit-zone': S.sheet = { type:'edit-zone', zid: el.dataset.zone }; break;
+    case 'edit-item': S.sheet = { type:'edit-item', zid: el.dataset.zone, iid: el.dataset.item }; break;
+    case 'add-item': {
+      const zs = cloneZones(getZones(S.apId, S.chk));
+      const z = zs.find(x => x.id === el.dataset.zone);
+      const nid = uid();
+      z.items.push({ id: nid, name: 'New check', desc: 'Describe what to verify.' });
+      S.zones[zKey()] = zs;
+      S.sheet = { type:'edit-item', zid: z.id, iid: nid };
+      break;
+    }
+    case 'add-zone': {
+      const zs = cloneZones(getZones(S.apId, S.chk));
+      const nid = uid();
+      zs.push({ id: nid, name: 'New zone', items: [] });
+      S.zones[zKey()] = zs;
+      S.sheet = { type:'edit-zone', zid: nid };
+      break;
+    }
+    case 'del-item': {
+      const sh = S.sheet;
+      const zs = cloneZones(getZones(S.apId, S.chk));
+      const z = zs.find(x => x.id === sh.zid);
+      if (z) z.items = z.items.filter(i => i.id !== sh.iid);
+      S.zones[zKey()] = zs;
+      S.sheet = null;
+      break;
+    }
+    case 'req': S.sheet = { type:'request', apId: id || '' }; break;
+    case 'export': {
+      const data = { exportedAt: new Date().toISOString(), apEdits: S.apEdits, stOrder: S.stOrder, chkOrder: S.chkOrder, zones: S.zones };
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type:'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'fd13-data.json';
+      a.click();
+      return;
+    }
+    case 'reset': S.sheet = { type:'reset' }; break;
+    case 'reset-yes': {
+      const u = S.user, am = S.adminMode;
+      localStorage.removeItem(CONFIG.storageKey);
+      Object.assign(S, fresh());
+      S.user = u; S.adminMode = am; S.screen = 'aps';
+      break;
+    }
+    default: return;
+  }
+  save();
+  render();
+});
+
+document.addEventListener('input', e => {
+  const id = e.target.dataset && e.target.dataset.note;
+  if (!id) return;
+  const d = getDraft(S.apId, S.chk);
+  if (d.ans[id]) d.ans[id].note = e.target.value;
+  save();
+});
+
+// Keep the one-line hint and submit state current while a note is typed.
+document.addEventListener('change', e => {
+  if (e.target.dataset && e.target.dataset.note) render();
+});
+
+window.addEventListener('load', async () => {
+  await msalHandleRedirect();
+  render();
+});
+render();
+</script>
+</body>
+</html>
