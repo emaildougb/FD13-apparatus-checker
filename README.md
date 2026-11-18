@@ -2,7 +2,7 @@
 
 Daily apparatus check app for Clark County Fire District 13.
 
-**Version 1.0.0 (2026-10-28)**
+**Version 1.3.1 (2026-11-18)**
 
 ## Links
 
@@ -21,8 +21,8 @@ Daily apparatus check app for Clark County Fire District 13.
 
 1. **Microsoft app registration.** Done. Client ID is set in `CONFIG.msal.clientId`, tenant is `153dc089-095e-4a20-8d10-39321a0aca09`. Demo mode is off.
 2. **Enterprise application.** In Entra, Enterprise applications, this app, Properties: set **Assignment required** to **No**, or crews get blocked by Microsoft.
-3. **Admin emails.** Add Mike Wagner's and Chuck Andrus's Microsoft sign-in addresses to `CONFIG.msal.adminEmails`. Anyone else who signs in with Microsoft is crew.
-4. **Checklists.** Replace the sample checklists in `TPL` with the real content from `fd13-all-checklists.json`. Each item's `cat` becomes a zone, `name` becomes the check name, and `desc` becomes the details text.
+3. **Admin emails.** `CONFIG.msal.adminEmails` holds Mike Wagner, Chuck Andrus, and Doug Boyce. Anyone else who signs in with Microsoft is crew.
+4. **Checklists.** Mike's layout and the eng51 pre shift checklist are built in as `SEED`. The remaining checks still use the sample checklists in `TPL` until `fd13-all-checklists.json` is loaded. Each item's `cat` becomes a zone, `name` becomes the check name, and `desc` becomes the details text.
 5. **Report email (optional).** Set `CONFIG.emailjs` (public key, service ID, template ID, recipient). Blank means the report is shown on screen with a Copy button.
 
 ## Sign in
@@ -58,6 +58,28 @@ Anyone can report a problem from a unit or from the Open problems screen. Admins
 Right now all data saves in the browser (localStorage, key `fd13check_v3`). Nothing is shared between phones yet. Reset this device clears everything saved on it. A Cloudflare Worker for shared checks and admin edits is the next build.
 
 ## Version history
+
+### 1.3.1 (2026-11-18)
+- Removed the demo account picker. Sign in is Microsoft only.
+
+### 1.3.0 (2026-11-18)
+- Shared layout: the app reads the layout from the FD13 Worker (https://fd13-apparatus.d-boyce.workers.dev) on start, so everyone sees the same units, checks, and zones.
+- Admin changes are saved to the Worker with the admin's Microsoft sign-in. Staff and volunteers can't change the layout.
+- Drafts, submitted checks, and problems stay on each device for now.
+
+### 1.2.1 (2026-11-18)
+- Roster filled in: Chandler Reyes (j.reyes), Joshua Fox (j.fox), Hunter Mraz (m.mraz), all @northcountryems.org.
+
+### 1.2.0 (2026-11-18)
+- Paid staff sign in with the Microsoft button only. Admin status and the person's name come from the account, matched to the roster by email.
+- Volunteer crews keep the name box (no login).
+- Doug Boyce added to the roster as admin.
+
+### 1.1.0 (2026-11-17)
+- Built-in layout (`SEED`) from Mike Wagner's export: unit order at both stations, check order, and the full eng51 pre shift checklist.
+- Layout is re-applied on each device once per `CONFIG.seedVersion`. Drafts, submitted history and problems are kept.
+- Doug Boyce added to admin emails.
+- Mike Wagner is the primary content admin. Doug keeps full admin rights.
 
 ### 1.0.0 (2026-10-28)
 - First full build.

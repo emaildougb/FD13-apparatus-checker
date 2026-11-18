@@ -206,15 +206,19 @@ h2{font-size:16px;font-weight:500;margin:0}
    for a normal rollout.
    ========================================================= */
 const CONFIG = {
-  version: '1.0.0',
-  versionDate: '2026-10-28',
+  version: '1.3.1',
+  versionDate: '2026-11-18',
+  // Shared layout Worker (North Country Cloudflare, workers.dev). Reads are public; admin writes need a Microsoft ID token.
+  worker: 'https://fd13-apparatus.d-boyce.workers.dev',
+  // Bump seedVersion whenever the built-in layout (SEED) changes. Devices re-apply SEED once per bump.
+  seedVersion: '2026-11-17-mike',
   // Microsoft sign in. Create the app registration in the district Entra tenant,
   // add the redirect URI for this site, then paste the Client ID here.
-  // Until this is set the app runs in demo mode with the account picker.
+  // Microsoft sign in must be set up (clientId, tenantId) for the app to work.
   msal: {
     clientId: '06fbbe41-0b42-4b07-a071-cb4ffa5092c9',  // FD13 Apparatus Check, Application (client) ID
     tenantId: '153dc089-095e-4a20-8d10-39321a0aca09', // confirm this is the district tenant
-    adminEmails: ['m.wagner@northcountryems.org', 'c.andrus@northcountryems.org'],                                // paid staff who get admin access, e.g. 'mike.wagner@...'
+    adminEmails: ['m.wagner@northcountryems.org', 'c.andrus@northcountryems.org', 'd.boyce@northcountryems.org'],                                // paid staff who get admin access, e.g. 'mike.wagner@...'
   },
   // EmailJS for the report email. Leave blank to show and copy the report on screen only.
   emailjs: { publicKey: '', serviceId: '', templateId: '', to: '' },
@@ -226,10 +230,11 @@ const CONFIG = {
    DATA. Sample checklists until fd13-all-checklists.json is loaded.
    ========================================================= */
 const ROSTER = [
+  { id:'doug',     name:'Doug Boyce',    email:'d.boyce@northcountryems.org', admin:true,  ms:true },
   { id:'mike',     name:'Mike Wagner',   email:'m.wagner@northcountryems.org', admin:true,  ms:true },
-  { id:'chandler', name:'Chandler Reyes', email:'', admin:false, ms:true },
-  { id:'joshua',   name:'Joshua Fox',    email:'', admin:false, ms:true },
-  { id:'hunter',   name:'Hunter Moraz',  email:'', admin:false, ms:true },
+  { id:'chandler', name:'Chandler Reyes', email:'j.reyes@northcountryems.org', admin:false, ms:true },
+  { id:'joshua',   name:'Joshua Fox',    email:'j.fox@northcountryems.org', admin:false, ms:true },
+  { id:'hunter',   name:'Hunter Mraz',   email:'m.mraz@northcountryems.org', admin:false, ms:true },
   { id:'chuck',    name:'Chuck Andrus',  email:'c.andrus@northcountryems.org', admin:true,  ms:true }
 ];
 
@@ -287,6 +292,220 @@ const TPL = {
 };
 
 /* =========================================================
+   SEED. Layout and checklist content from Mike Wagner's export (fd13-data.json, 2026-11-17).
+   Mike is the primary content admin. Replace or extend this as he sends new content.
+   ========================================================= */
+const SEED = {
+  "stOrder": {
+    "s131": [
+      "eng51",
+      "sq51",
+      "wt51",
+      "eng52",
+      "wt52"
+    ],
+    "s132": [
+      "eng50",
+      "brush51"
+    ]
+  },
+  "chkOrder": [
+    "monthly",
+    "preshift",
+    "scba"
+  ],
+  "zones": {
+    "eng51|preshift": [
+      {
+        "id": "1jb93vg7",
+        "name": "Cab Interior",
+        "items": [
+          {
+            "id": "2vsuwa3w",
+            "name": "General Cab Visual Inspection",
+            "desc": "Interior cab is clean, tidy and ready for work. Map/ EGR/Atlas and pre-fire books all presnt , High visibility traffic vest w/ safety glasses x 4 minimum present, window are clean, free of hand and finger smudges, windshield is free of haze. Seatbelts all accounted for, SCBA Pack safety straps and rip cords are good to go, ERG B"
+          },
+          {
+            "id": "n0zdu1lt",
+            "name": "MDC",
+            "desc": "Verify that the MDC is signed in and is functioning"
+          },
+          {
+            "id": "5zamk4ss",
+            "name": "Radios",
+            "desc": "Mobile Radios power on and all portable radios are accounted for and charging"
+          },
+          {
+            "id": "cadbkgis",
+            "name": "EMS Equipment",
+            "desc": "All ems equipment is present and accounted for. Trauma Kit, Airway Kit, C-spine/splints/backboard, AED, Pulse-ox/Co monitor."
+          }
+        ]
+      },
+      {
+        "id": "w9tb2cnp",
+        "name": "Mechanical",
+        "items": [
+          {
+            "id": "ps9h1t6e",
+            "name": "Oil Level",
+            "desc": "Within normal operating limits"
+          },
+          {
+            "id": "9ofwktrz",
+            "name": "Coolant",
+            "desc": "Within normal operating limits"
+          },
+          {
+            "id": "gl488sp5",
+            "name": "Transmission Fluid",
+            "desc": "Within normal operating limits."
+          },
+          {
+            "id": "i72uz0rn",
+            "name": "Tires",
+            "desc": "Visually inspect all tires for signs of underinflation, uneven or excessive tread wear, and physical damage. Check for cuts, cracks, bulges, exposed cords, or other conditions that may indicate a tire is unsafe or approaching the end of its service life."
+          }
+        ]
+      },
+      {
+        "id": "eng51-preshift-z0",
+        "name": "Driver Controls and Vehicle lighting",
+        "items": [
+          {
+            "id": "gadnrxkf",
+            "name": "Mirror adjustment",
+            "desc": "Mirrors are set to the drivers preference and are free of debris along with passing functionality test."
+          },
+          {
+            "id": "eng51-preshift-z0-i0",
+            "name": "Emergency Lights",
+            "desc": "All light heads cycle with no dead or cracked lenses."
+          },
+          {
+            "id": "eng51-preshift-z0-i1",
+            "name": "Siren and Air Horn",
+            "desc": "Siren and air horn sound on command."
+          },
+          {
+            "id": "i4b5f6fz",
+            "name": "Scene lighting",
+            "desc": "All white exterior scene lights function with no notable damage"
+          },
+          {
+            "id": "6ohsxxon",
+            "name": "Turn signals & Hazard lights",
+            "desc": "Function normally with no defects noted"
+          },
+          {
+            "id": "bquuj8wu",
+            "name": "Headlights",
+            "desc": "Low and high beams pass function test"
+          },
+          {
+            "id": "6kj5jgir",
+            "name": "Brake Lights",
+            "desc": "When brake peddle pressure is applied brake lights activate and operate as intended"
+          },
+          {
+            "id": "bz7algxl",
+            "name": "Reverse Lights",
+            "desc": "When the vehicle is put into reverse the lights activate and function as intended"
+          }
+        ]
+      },
+      {
+        "id": "eng51-preshift-z1",
+        "name": "Exterior Compartments",
+        "items": [
+          {
+            "id": "eng51-preshift-z1-i0",
+            "name": "Driver side front",
+            "desc": "Compartment is organized and PAR with essential tools and equipment. Two LED Traffic wands, hose couplings, spare nozzles, duct tape, tool kit, traffic control signs X2, LDH Pony, 2.5\" Pony."
+          },
+          {
+            "id": "82iftp7w",
+            "name": "Wheel Chocks",
+            "desc": "Wheel chocks present and properly stowed"
+          },
+          {
+            "id": "eng51-preshift-z1-i1",
+            "name": "Driver side middle",
+            "desc": "Organized and clean, essential items present and ready for use. Rescue 42 struts, hasty bag, spare e-tool batteries on charge, thermal camera (TIC),"
+          },
+          {
+            "id": "yr2agau1",
+            "name": "Driver side rear",
+            "desc": "All standard tools and equipment clean, dry, organized and accounted for. E-Tools (JAWS-OF-LIFE) Cutter, spreader, ram. large portable scene lights."
+          },
+          {
+            "id": "fk8ouajc",
+            "name": "Rear Roll Up",
+            "desc": "All standard tools and equipment clean, dry, organized and accounted for. PPV fan, gross decontamination kit, cribbing, power saws, Blitz-fire, salvage covers."
+          },
+          {
+            "id": "4joppula",
+            "name": "Ladder Compartment",
+            "desc": "28ft extension & 14ft roofer around stowed appropriately. additional equipment in this compartment should include a residential water key, Main water key, long and short pike pole, New York hook, and attic ladder."
+          },
+          {
+            "id": "wftsyx2y",
+            "name": "Officers Side Rear",
+            "desc": "All standard tools and equipment clean, dry, organized and accounted for. Generator, glass-saw, extension cords, Sawzall, fuel can Reg / Mix."
+          },
+          {
+            "id": "1c84kmit",
+            "name": "Officers side middle",
+            "desc": "All standard tools and equipment clean, dry, organized and accounted for. Flat head ax, pike head ax, rubbish hook, pike pole, sledge hammer, pickets, hay hooks."
+          },
+          {
+            "id": "i8qhzvla",
+            "name": "Officers side front",
+            "desc": "All standard tools and equipment clean, dry, organized and accounted for. Class K extinguisher, Air lifting bags, Spare 4500psi MSA bottle, Smoke alarm kit, cribbing."
+          }
+        ]
+      },
+      {
+        "id": "ipwo9xm7",
+        "name": "Pump",
+        "items": [
+          {
+            "id": "bxq90gtj",
+            "name": "Pump Switch",
+            "desc": "Switch in the cab of the apparatus is found to be in normal operating condition and is free of damage"
+          },
+          {
+            "id": "yvt6949r",
+            "name": "Tank Water",
+            "desc": "Level indicators on the exterior of the vehicle along with the indicator on the pump panel match along with the tank being filled to max capacity"
+          },
+          {
+            "id": "b4wvt00n",
+            "name": "Pump Panel",
+            "desc": "All gauges, levers and screens are operational and readable. All panel lights are functioning and the primer pump functions."
+          },
+          {
+            "id": "cqv3uuaq",
+            "name": "Function Check",
+            "desc": "The apparatus pump is engaged and throttled up to standard starting psi (100psi). Pump and main chassis motor were run until normal operating temperature obtained. Typically 10minutes at 100psi. Making sure to operate the tank fill valve on the panel to move water through the system."
+          },
+          {
+            "id": "7llplzym",
+            "name": "Discharge and Intake ports",
+            "desc": "Verify that all discharge and intake ports are in operating condition which includes making sure that all caps are on and tight. Ports should be free of excess water which may be seen as water dripping from the cap."
+          },
+          {
+            "id": "ha4v6whx",
+            "name": "Hose loads",
+            "desc": "Verify that all hose loads are stowed in the proper configuration and ready for deployment"
+          }
+        ]
+      }
+    ]
+  }
+};
+
+/* =========================================================
    HELPERS AND STATE
    ========================================================= */
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -310,10 +529,10 @@ function fresh(){
   return {
     user: null,
     adminMode: false,
-    stOrder: { s131: APP_LIST.filter(a => a.st === 's131').map(a => a.id), s132: APP_LIST.filter(a => a.st === 's132').map(a => a.id) },
+    stOrder: JSON.parse(JSON.stringify(SEED.stOrder)),
     apEdits: {},
-    chkOrder: CHK_LIST.map(c => c.id),
-    zones: {},
+    chkOrder: JSON.parse(JSON.stringify(SEED.chkOrder)),
+    zones: JSON.parse(JSON.stringify(SEED.zones)),
     drafts: {},
     history: [],     // submitted checks
     problems: [],    // open and resolved problems: check items and manual requests
@@ -333,14 +552,74 @@ const PERSIST = ['stOrder','apEdits','chkOrder','zones','drafts','history','prob
 function save(){
   const o = {};
   PERSIST.forEach(k => o[k] = S[k]);
+  o.seedVersion = CONFIG.seedVersion;
   try { localStorage.setItem(CONFIG.storageKey, JSON.stringify(o)); } catch(e) {}
+  pushSharedLayout();
+}
+
+/* ---------- Shared layout (Worker) ---------- */
+const LAYOUT_FIELDS = ['stOrder', 'chkOrder', 'apEdits', 'zones'];
+let lastPushed = '';
+let sharedReady = false;   // set once the shared layout has been read, so a stale device never overwrites it
+function layoutJSON(){
+  const o = {};
+  LAYOUT_FIELDS.forEach(k => o[k] = S[k]);
+  return JSON.stringify(o);
+}
+// Everyone starts from the shared layout when the Worker has one. Drafts, history and problems stay on the device.
+async function loadSharedLayout(){
+  if (!CONFIG.worker) return false;
+  try {
+    const res = await fetch(CONFIG.worker + '/state', { cache: 'no-store' });
+    if (!res.ok) return false;
+    const body = await res.json();
+    sharedReady = true;
+    if (!body || !body.state) return true;
+    LAYOUT_FIELDS.forEach(k => { if (body.state[k] !== undefined) S[k] = body.state[k]; });
+    lastPushed = layoutJSON();
+    try { localStorage.setItem(CONFIG.storageKey, JSON.stringify({ ...PERSIST.reduce((o,k)=>(o[k]=S[k],o),{}), seedVersion: CONFIG.seedVersion })); } catch(e) {}
+    return true;
+  } catch(e) { return false; }
+}
+async function idToken(){
+  const app = msalReady();
+  if (!app) return null;
+  const acc = app.getActiveAccount() || app.getAllAccounts()[0];
+  if (!acc) return null;
+  const r = await app.acquireTokenSilent({ scopes: ['openid', 'profile', 'email'], account: acc });
+  return r.idToken || null;
+}
+// Admin changes go to the Worker. Staff and volunteers never write to it.
+async function pushSharedLayout(){
+  if (!CONFIG.worker || !sharedReady || !S.user || !S.user.ms || !S.user.admin) return;
+  const now = layoutJSON();
+  if (now === lastPushed) return;
+  try {
+    const token = await idToken();
+    if (!token) { toast('Not saved for everyone. Sign out and sign in with Microsoft again.'); return; }
+    const res = await fetch(CONFIG.worker + '/state', {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json', authorization: 'Bearer ' + token },
+      body: now
+    });
+    if (res.ok) lastPushed = now;
+    else toast('Not saved for everyone. Try again in a moment.');
+  } catch(e) {
+    toast('Not saved for everyone. Check the connection and try again.');
+  }
 }
 function load(){
   const base = fresh();
-  try {
-    const o = JSON.parse(localStorage.getItem(CONFIG.storageKey) || 'null');
-    if (o) PERSIST.forEach(k => { if (o[k] !== undefined) base[k] = o[k]; });
-  } catch(e) {}
+  let o = null;
+  try { o = JSON.parse(localStorage.getItem(CONFIG.storageKey) || 'null'); } catch(e) {}
+  if (o) PERSIST.forEach(k => { if (o[k] !== undefined) base[k] = o[k]; });
+  // Layout seed: when this device's saved layout is from an older seed, take the built-in layout.
+  // Drafts, history and problems are kept.
+  if (!o || o.seedVersion !== CONFIG.seedVersion) {
+    base.stOrder = JSON.parse(JSON.stringify(SEED.stOrder));
+    base.chkOrder = JSON.parse(JSON.stringify(SEED.chkOrder));
+    base.zones = JSON.parse(JSON.stringify(SEED.zones));
+  }
   return base;
 }
 let S = load();
@@ -417,15 +696,13 @@ function shell(main){
 }
 
 function viewSignin(){
-  const configured = !!CONFIG.msal.clientId;
   return `<div class="signin"><div class="signin-col">
     <div class="brand-lg"><img src="logo.png" alt="Clark County Fire District 13 logo"><div><h1>FD13 Apparatus Check</h1><div class="muted">Clark County Fire District 13</div></div></div>
 
     <section class="card pad">
       <h2>Paid staff</h2>
-      <p class="muted" style="margin:6px 0 0">Sign in with your district Microsoft account. Admin access comes from the account.</p>
+      <p class="muted" style="margin:6px 0 0">Sign in with your district Microsoft account.</p>
       <div style="margin-top:16px"><button class="btn-primary block" data-act="ms-open">Sign in with Microsoft</button></div>
-      ${configured ? '' : '<p class="note">Demo mode. Microsoft sign in is not configured yet, so this shows an account picker.</p>'}
       <p class="err-text">${esc(S.msErr)}</p>
     </section>
 
@@ -657,13 +934,6 @@ function sheetHTML(){
   let title = '', body = '', actions = '';
   const cancel = '<button class="btn-second" data-act="close">Cancel</button>';
   switch (sh.type){
-    case 'ms': {
-      title = 'Demo account picker';
-      body = `<p class="muted" style="margin:0">Microsoft sign in is not configured yet. Pick an account to try the app. Admin access follows the account.</p>
-        ${ROSTER.map(p => `<button class="acct" data-act="ms-pick" data-id="${p.id}"><span>${esc(p.name)}</span><small>${p.admin ? 'Admin' : 'Crew'}</small></button>`).join('')}`;
-      actions = cancel;
-      break;
-    }
     case 'missing': {
       const list = missingFor(S.apId, S.chk);
       title = `${list.length} ${list.length === 1 ? 'thing' : 'things'} to finish`;
@@ -1009,7 +1279,7 @@ function msalReady(){
 
 async function msalSignIn(){
   const app = msalReady();
-  if (!app) { S.sheet = { type:'ms' }; render(); return; }
+  if (!app) { S.msErr = 'Microsoft sign in is not available right now. Refresh the page and try again.'; render(); return; }
   try {
     const acc = app.getAllAccounts()[0];
     if (acc) return msalUser(acc);
@@ -1021,9 +1291,11 @@ async function msalSignIn(){
 }
 
 function msalUser(acc){
+  // Name and role come from the roster (matched by email) and the admin list. Staff see only the Microsoft button.
   const email = (acc.username || '').toLowerCase();
   const admin = CONFIG.msal.adminEmails.map(x => x.toLowerCase()).includes(email);
-  signIn({ id: 'ms-' + email, name: acc.name || email, email, admin, ms: true });
+  const person = ROSTER.find(p => p.email && p.email.toLowerCase() === email);
+  signIn({ id: 'ms-' + email, name: person ? person.name : (acc.name || email), email, admin, ms: true });
   save();
   render();
 }
@@ -1060,11 +1332,6 @@ document.addEventListener('click', e => {
   const act = el.dataset.act, id = el.dataset.id;
   switch (act){
     case 'ms-open': msalSignIn(); return;
-    case 'ms-pick': {
-      const p = ROSTER.find(x => x.id === id);
-      signIn({ id: p.id, name: p.name, email: p.email, admin: !!p.admin, ms: true });
-      break;
-    }
     case 'sheet-save': sheetSave(); break;
     case 'close': S.sheet = null; break;
     case 'signout': S.user = null; S.adminMode = false; S.screen = 'signin'; S.sheet = null; break;
@@ -1162,6 +1429,7 @@ document.addEventListener('change', e => {
 
 window.addEventListener('load', async () => {
   await msalHandleRedirect();
+  await loadSharedLayout();
   render();
 });
 render();
