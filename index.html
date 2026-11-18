@@ -240,7 +240,7 @@ h3{font-size:17px;font-weight:600;margin:0 0 8px}
    for a normal rollout.
    ========================================================= */
 const CONFIG = {
-  version: '1.4.1',
+  version: '1.5.0',
   versionDate: '2026-11-18',
   // Shared layout Worker (North Country Cloudflare, workers.dev). Reads are public; admin writes need a Microsoft ID token.
   worker: 'https://fd13-apparatus.d-boyce.workers.dev',
@@ -577,6 +577,7 @@ function fresh(){
     zones: JSON.parse(JSON.stringify(SEED.zones)),
     drafts: {},             // per device, per day: { ans:{}, ... }
     photos: {},             // per device only, never shared: { dk: { itemId: dataURL } }
+    photoLinks: {},         // link to each photo stored on the FD13 Worker: { dk: { itemId: url } }
     history: [],            // submitted checks
     problems: [],           // open and resolved problems
     screen: 'signin',
@@ -603,7 +604,7 @@ function savePersist(){
   catch(e) { toast('This phone is out of room to save. Download the data file and clear old checks.'); return false; }
 }
 function savePhotos(){
-  try { localStorage.setItem(PHOTO_KEY(), JSON.stringify(S.photos)); }
+  try { localStorage.setItem(PHOTO_KEY(), JSON.stringify(S.photos)); localStorage.setItem(PHOTO_KEY() + 'links', JSON.stringify(S.photoLinks)); }
   catch(e) { toast('This photo is too large to keep on this phone.'); }
 }
 // Every change: save on this phone, send the open check to the shared copy, and push layout changes for admins.
@@ -777,6 +778,7 @@ function load(){
   try { o = JSON.parse(localStorage.getItem(CONFIG.storageKey) || 'null'); } catch(e) {}
   if (o) PERSIST.forEach(k => { if (o[k] !== undefined) base[k] = o[k]; });
   try { base.photos = JSON.parse(localStorage.getItem(CONFIG.storageKey + '_photos') || '{}') || {}; } catch(e) { base.photos = {}; }
+  try { base.photoLinks = JSON.parse(localStorage.getItem(CONFIG.storageKey + '_photos' + 'links') || '{}') || {}; } catch(e) { base.photoLinks = {}; }
   // Layout seed: when this device's saved layout is from an older seed, take the built-in layout.
   if (!o || o.seedVersion !== CONFIG.seedVersion) {
     base.stOrder = JSON.parse(JSON.stringify(SEED.stOrder));
@@ -1442,8 +1444,18 @@ function buildReport(apId, chk, by, dateStr){
       lines.push(`  ${x.z.name}: ${x.i.name}. ${how}${an.note ? '. Note: ' + an.note : ''}`);
     });
   }
-  const photoCount = Object.keys(photosFor(apId, chk)).length;
-  if (photoCount) { lines.push(''); lines.push(`Photos taken on this phone: ${photoCount} (not attached to this email)`); }
+  const pkey = dk(apId, chk);
+  const pics = Object.keys(photosFor(apId, chk));
+  const links = (S.photoLinks && S.photoLinks[pkey]) || {};
+  if (pics.length){
+    lines.push('');
+    lines.push(`Photos (${pics.length}):`);
+    pics.forEach(id => {
+      const it = items.find(x => x.i.id === id);
+      const nm = it ? it.i.name : id;
+      lines.push(links[id] ? `  ${nm}: ${links[id]}` : `  ${nm}: not uploaded, photo is still on the phone`);
+    });
+  }
   return { text: lines.join('\n'), headline: fails.length ? `${fails.length} abnormal` : 'All normal', unable, fixed, fails, passed, total: items.length };
 }
 
@@ -1457,10 +1469,11 @@ async function sendEmail(subject, text){
   } catch (err) { return false; }
 }
 
-function submitCheck(){
+async function submitCheck(){
   const a = AP(S.apId);
   const d = getDraft(S.apId, S.chk);
   if (missingFor(S.apId, S.chk).length) { S.sheet = { type:'missing' }; render(); return; }
+  await finishPhotos(S.apId, S.chk);
   const dateStr = new Date().toLocaleString();
   const rep = buildReport(S.apId, S.chk, live(), dateStr);
   const chkName = CHK_LIST.find(c => c.id === S.chk).name;
@@ -1483,6 +1496,7 @@ function submitCheck(){
   deleteShared(S.apId, S.chk);
   delete S.drafts[key];
   if (S.photos[key]) delete S.photos[key];
+  if (S.photoLinks[key]) delete S.photoLinks[key];
   delete HOLDERS[a.id + '|' + S.chk];
   S.lastReport = { headline: rep.headline, text: rep.text };
   S.sheet = { type:'report' };
@@ -1658,6 +1672,7 @@ document.addEventListener('click', e => {
     case 'photo-remove': {
       const key = dk(S.apId, S.chk);
       if (S.photos[key]) delete S.photos[key][el.dataset.item];
+      if (S.photoLinks[key]) delete S.photoLinks[key][el.dataset.item];
       savePhotos();
       break;
     }
@@ -1785,10 +1800,52 @@ function addPhoto(iid, file){
       S.photos[key][iid] = c.toDataURL('image/jpeg', 0.7);
       savePhotos();
       render();
+      const item = getZones(S.apId, S.chk).flatMap(z => z.items).find(x => x.id === iid);
+      queuePhotoUpload(key, iid, item ? item.name : 'photo');
     };
     img.src = reader.result;
   };
   reader.readAsDataURL(file);
+}
+
+// Photos go to the FD13 Worker (R2 bucket fd13-check-photos), the same way North Country's checks do.
+// The phone keeps its own copy too. A photo that fails to upload is tried again when the check is submitted.
+async function uploadPhoto(dataUrl, unit, label){
+  const blob = await (await fetch(dataUrl)).blob();
+  const res = await fetch(CONFIG.worker + '/photos?unit=' + encodeURIComponent(unit) + '&label=' + encodeURIComponent(label), {
+    method: 'POST', headers: { 'content-type': 'image/jpeg' }, body: blob
+  });
+  const j = await res.json().catch(() => null);
+  if (!res.ok || !j || !j.ok) throw new Error((j && j.error) || 'Photo upload failed');
+  return j.url;
+}
+function apUnitName(apId){ const a = AP(apId); return a && a.id ? a.id : 'unit'; }
+async function queuePhotoUpload(key, iid, label){
+  const dataUrl = S.photos[key] && S.photos[key][iid];
+  if (!dataUrl) return;
+  try {
+    const url = await uploadPhoto(dataUrl, apUnitName(S.apId), label);
+    S.photoLinks[key] = S.photoLinks[key] || {};
+    S.photoLinks[key][iid] = url;
+    savePhotos();
+    render();
+  } catch (e) { /* stays on the phone; tried again at submit */ }
+}
+// At submit: upload any photo that has no link yet. Photos that still fail are reported in the email.
+async function finishPhotos(apId, chk){
+  const key = dk(apId, chk);
+  const photos = S.photos[key] || {};
+  const items = getZones(apId, chk).flatMap(z => z.items);
+  for (const iid of Object.keys(photos)){
+    if (S.photoLinks[key] && S.photoLinks[key][iid]) continue;
+    const item = items.find(x => x.id === iid);
+    try {
+      const url = await uploadPhoto(photos[iid], AP(apId).id || 'unit', item ? item.name : 'photo');
+      S.photoLinks[key] = S.photoLinks[key] || {};
+      S.photoLinks[key][iid] = url;
+    } catch (e) { /* reported as not uploaded */ }
+  }
+  savePhotos();
 }
 
 // New-version notice. The app compares the version it is running with the version the server is serving now.

@@ -172,3 +172,11 @@ Build notes for the next session:
 - The app checks on open, every five minutes, and when the phone comes back to the app.
 - Worker is unchanged (still version 1.1). No Worker deploy needed for this release.
 - To release a future version, bump CONFIG.version in index.html. The notice on older copies appears on their next check.
+
+## 1.5.0 change: photos to the Worker
+
+- Photos upload to the FD13 Worker (fd13-apparatus, version 1.2, R2 binding PHOTOS to fd13-check-photos) when taken, and again at submit if needed. Links to each photo go in the report email, by item.
+- Worker routes: POST /photos?unit=&label= (public, image bodies only, 15 MB limit) and GET /photo/<key> (public read).
+- Still to do before the email sends: add the FD13 EmailJS public key, service ID, template ID and recipients to CONFIG.emailjs (blank in 1.5.0). The North Country apps use the same EmailJS account. Doug to paste the FD13 values, or add them to the shared list the way the other settings are saved.
+- Test plan: send the first report to Doug only, then switch the recipients to m.wagner and c.andrus.
+

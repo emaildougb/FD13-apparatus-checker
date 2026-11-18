@@ -2,7 +2,7 @@
 
 Daily apparatus check app for Clark County Fire District 13.
 
-**Version 1.4.1 (2026-11-18)**
+**Version 1.5.0 (2026-11-18)**
 
 ## Links
 
@@ -11,6 +11,12 @@ Daily apparatus check app for Clark County Fire District 13.
 - Upload: [https://github.com/emaildougb/FD13-apparatus-checker/upload/main](https://github.com/emaildougb/FD13-apparatus-checker/upload/main)
 
 ## Changelog
+
+### 1.5.0 (2026-11-18)
+- Photos go to the FD13 Worker (R2 bucket fd13-check-photos), the same way North Country's checks do. Each photo uploads when it's taken, and any that didn't upload are tried again when the check is submitted.
+- The report email lists a link for each photo, by item. A photo that still hasn't uploaded is marked in the email and stays on the phone.
+- Worker 1.2 adds POST /photos and GET /photo/<key> (see fd13-apparatus-worker.js).
+- EmailJS settings are still blank in this build. The report email needs the FD13 EmailJS keys added before it sends.
 
 ### 1.4.1 (2026-11-18)
 - New-version notice: when a newer version is live, a bar across the top says so and offers Reset and update. Saved drafts, history and layout stay on the phone. The app checks when it opens, every five minutes, and when the phone comes back to the app.

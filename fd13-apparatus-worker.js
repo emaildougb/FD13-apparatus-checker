@@ -1,6 +1,7 @@
 /* =========================================================
    FD13 Apparatus Check, shared state Worker (fd13-apparatus)
    North Country EMS Cloudflare account. D1 database: fd13-apparatus-db.
+   Version 1.2 (2026-11-18). Adds check photos (/photos, /photo/...) stored in R2, same pattern as ncems-checks.
    Version 1.1 (2026-11-18). Adds shared check progress (/progress) and extraAps in /state.
 
    Routes
@@ -12,6 +13,8 @@
      GET  /progress?day=YYYY-MM-DD   shared check progress for one day (public read)
      PUT  /progress          merge one check or vehicle copy. Body: {key, doc:{ans, claim}}. Public, so volunteers can write.
      DELETE /progress?key=   remove one shared copy (after a check is submitted)
+     POST /photos?unit=&label=  store one photo in R2 (public, volunteers). Body: the image bytes, Content-Type image/jpeg, png, heic, heif, webp or gif. Returns {ok, key, url}.
+     GET  /photo/<key>       serve one stored photo (public read; keys are random)
 
    Auth
      Browser sends the Microsoft ID token as "Authorization: Bearer <token>".
@@ -25,12 +28,16 @@
      ORIGINS     https://apparatus.fd13.org,https://emaildougb.github.io
    Binding
      DB          D1 database fd13-apparatus-db
+     PHOTOS      R2 bucket fd13-check-photos
    ========================================================= */
 
-const VERSION = '1.1';
+const VERSION = '1.2';
 const SERVICE = 'fd13-apparatus';
 const MAX_BODY = 2 * 1024 * 1024;   // 2 MB
 const LOG_KEEP = 500;               // keep the newest 500 log entries
+const MAX_PHOTO = 15 * 1024 * 1024; // 15 MB, same limit as ncems-checks
+const PHOTO_TYPES = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/heic': 'heic', 'image/heif': 'heif', 'image/webp': 'webp', 'image/gif': 'gif' };
+const PHOTO_KEY_RE = /^\d{4}-\d{2}\/[A-Za-z0-9-]{1,12}\/[\w.-]{1,120}\.(jpg|png|heic|heif|webp|gif)$/;
 
 let schemaReady = false;
 let jwksCache = { at: 0, keys: null, tenant: '' };
@@ -61,6 +68,14 @@ function corsFor(request, env) {
     'access-control-max-age': '600',
     'vary': 'origin'
   };
+}
+
+function cleanPhotoPart(v, max) {
+  return String(v || '').replace(/[^A-Za-z0-9-]/g, '').slice(0, max) || 'x';
+}
+
+function randomPhotoId() {
+  return crypto.randomUUID().replace(/-/g, '').slice(0, 12);
 }
 
 function adminList(env) {
@@ -337,6 +352,40 @@ async function handle(request, env, verify = verifyIdToken) {
       return json({ ok: true, service: SERVICE, version: VERSION }, 200, cors);
     }
 
+    if (path === '/photos' && method === 'POST') {
+      if (!env.PHOTOS) throw httpError(500, 'Photo binding PHOTOS is missing');
+      const type = (request.headers.get('content-type') || '').split(';')[0].trim().toLowerCase();
+      if (!PHOTO_TYPES[type]) throw httpError(415, 'Send a photo (jpeg, png, heic, webp)');
+      const len = Number(request.headers.get('content-length') || 0);
+      if (len > MAX_PHOTO) throw httpError(413, 'Photo is over 15 MB');
+      const buf = await request.arrayBuffer();
+      if (!buf.byteLength) throw httpError(400, 'Empty photo');
+      if (buf.byteLength > MAX_PHOTO) throw httpError(413, 'Photo is over 15 MB');
+      const unit = cleanPhotoPart(url.searchParams.get('unit') || 'unit', 12);
+      const label = cleanPhotoPart(url.searchParams.get('label') || 'photo', 40);
+      const d = new Date();
+      const iso = d.toISOString();
+      const key = `${iso.slice(0, 7)}/${unit}/${iso.slice(0, 10)}-${label}-${randomPhotoId()}.${PHOTO_TYPES[type]}`;
+      await env.PHOTOS.put(key, buf, {
+        httpMetadata: { contentType: type, cacheControl: 'public, max-age=31536000, immutable' },
+        customMetadata: { unit, label }
+      });
+      return json({ ok: true, key, url: `${url.origin}/photo/${key}` }, 200, cors);
+    }
+
+    if (path.startsWith('/photo/') && method === 'GET') {
+      if (!env.PHOTOS) throw httpError(500, 'Photo binding PHOTOS is missing');
+      const key = decodeURIComponent(path.slice('/photo/'.length));
+      if (!PHOTO_KEY_RE.test(key)) throw httpError(400, 'Bad photo key');
+      const obj = await env.PHOTOS.get(key);
+      if (!obj) throw httpError(404, 'Photo not found');
+      const headers = new Headers();
+      obj.writeHttpMetadata(headers);
+      headers.set('etag', obj.httpEtag);
+      headers.set('cache-control', 'public, max-age=31536000, immutable');
+      return new Response(obj.body, { status: 200, headers });
+    }
+
     if (!env.DB) throw httpError(500, 'Database binding DB is missing');
     await ensureSchema(env.DB);
 
@@ -425,4 +474,4 @@ export default {
 };
 
 // For tests only
-export { handle, verifyIdToken, validateState, summarize, putProgress, getProgressDay, pruneProgress, cleanAns, mergeAns, PROGRESS_RE };
+export { handle, verifyIdToken, cleanPhotoPart, PHOTO_KEY_RE, validateState, summarize, putProgress, getProgressDay, pruneProgress, cleanAns, mergeAns, PROGRESS_RE };
