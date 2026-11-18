@@ -2,7 +2,7 @@
 
 Daily apparatus check app for Clark County Fire District 13.
 
-**Version 1.3.1 (2026-11-18)**
+**Version 1.3.2 (2026-11-18)**
 
 ## Links
 
@@ -14,6 +14,7 @@ Daily apparatus check app for Clark County Fire District 13.
 
 - `index.html` : the whole app. Version, date and config are at the top of the script.
 - `logo.png` : FD13 logo (header and sign-in)
+- `msal-browser.min.js` : Microsoft sign-in library (MSAL 2.38.3)
 - `CNAME` : custom domain for GitHub Pages (apparatus.fd13.org)
 - `README.md` : this file
 
@@ -58,6 +59,10 @@ Anyone can report a problem from a unit or from the Open problems screen. Admins
 Right now all data saves in the browser (localStorage, key `fd13check_v3`). Nothing is shared between phones yet. Reset this device clears everything saved on it. A Cloudflare Worker for shared checks and admin edits is the next build.
 
 ## Version history
+
+### 1.3.2 (2026-11-18)
+- Microsoft sign-in library (msal-browser.min.js, MSAL 2.38.3) is now hosted with the app instead of loaded from Microsoft's CDN, which was being blocked.
+- Upload msal-browser.min.js with the other files.
 
 ### 1.3.1 (2026-11-18)
 - Removed the demo account picker. Sign in is Microsoft only.

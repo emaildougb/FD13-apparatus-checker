@@ -4,7 +4,7 @@ Start here if you're picking this up in a new Claude session. This file covers w
 
 Repo: https://github.com/emaildougb/FD13-apparatus-checker
 Live (once DNS is verified): https://apparatus.fd13.org/
-Version: 1.3.1 (2026-11-18)
+Version: 1.3.2 (2026-11-18)
 
 ## Who does what
 
@@ -34,6 +34,7 @@ The fix logic was carried over from the NCEMS equipment checker. Not carried ove
 - `index.html`: the whole app (single file, vanilla HTML, CSS, and JS, no build step).
 - `CNAME`: `apparatus.fd13.org`.
 - `logo.png`: FD13 logo.
+- `msal-browser.min.js`: Microsoft sign-in library, hosted with the app (MSAL 2.38.3).
 - `README.md`: setup and version history.
 - `HANDOFF.md`: this file.
 
@@ -41,7 +42,7 @@ The fix logic was carried over from the NCEMS equipment checker. Not carried ove
 
 ```js
 const CONFIG = {
-  version: '1.3.1',
+  version: '1.3.2',
   versionDate: '2026-11-18',
   worker: 'https://fd13-apparatus.d-boyce.workers.dev',
   seedVersion: '2026-11-17-mike',
