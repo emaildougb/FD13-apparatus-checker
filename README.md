@@ -2,13 +2,26 @@
 
 Daily apparatus check app for Clark County Fire District 13.
 
-**Version 1.3.2 (2026-11-18)**
+**Version 1.4.0 (2026-11-18)**
 
 ## Links
 
 - Live: [https://apparatus.fd13.org/](https://apparatus.fd13.org/) (also at [https://emaildougb.github.io/FD13-apparatus-checker/](https://emaildougb.github.io/FD13-apparatus-checker/))
 - Repo: [https://github.com/emaildougb/FD13-apparatus-checker](https://github.com/emaildougb/FD13-apparatus-checker)
 - Upload: [https://github.com/emaildougb/FD13-apparatus-checker/upload/main](https://github.com/emaildougb/FD13-apparatus-checker/upload/main)
+
+## Changelog
+
+### 1.4.0 (2026-11-18)
+- Check answers are Normal or Abnormal. An Abnormal item asks "What's wrong with this item?", then Fixed on the spot or Unable to fix, and Add photo (photos stay on the phone that took them).
+- Engine hours and mileage are free text boxes, shared by everyone checking that unit today. Fuel and DEF are pickers marked for the record only, and a low level never fails a check.
+- Autosave: every answer is saved on the phone as it is made. A reload keeps the check. The check screen says when it was last saved and whether it was shared.
+- Shared checks: a check is shared with the crew through the FD13 shared Worker (version 1.1). Two phones on the same check see who has it open, and answers merge item by item (the newer answer for an item wins). Shared copies older than three days are removed.
+- Back button: Back steps back through the app (check, unit, apparatus list). Back on an open sheet closes the sheet. It no longer leaves the app.
+- Red theme is the FD13 Hub oxblood (#7A0A0A).
+- Admin editing has a new look: turn on Edit layout, then use Move up, Move down and Edit on each row. Add a unit with the button at the bottom of a station. Drag handles are gone.
+- Units added by admins are saved in the shared layout (Worker 1.1 needed).
+- Requires Worker fd13-apparatus version 1.1 (see HANDOFF). Until the Worker is updated, the app still works on each phone and shows that the shared copy is not reachable.
 
 ## Files (upload ALL of these)
 

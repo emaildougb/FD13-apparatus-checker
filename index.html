@@ -3,210 +3,240 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#CE2029">
+<meta name="theme-color" content="#7A0A0A">
 <title>FD13 Apparatus Check</title>
 <link rel="icon" href="logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="msal-browser.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <style>
 :root{
-  --ground:#f8f8f8; --surface:#ffffff; --raised:#eeeeee; --active:#eeeeee;
-  --border:#e6e6e6; --rule:#f0f0f0; --control:#d4d4d4;
-  --text:#0a0a0a; --muted:#6b6b6b; --ink-2:#3d3d3d;
-  --accent:#CE2029; --accent-ink:#ffffff;
-  --positive:#2e7d32; --negative:#B3151D;
-  --pill-positive-bg:#e4f2e6; --pill-positive-ink:#1d4f24;
-  --radius-card:8px; --radius-control:6px;
+  --accent:#7A0A0A; --accent-2:#5C0707; --accent-soft:#F7ECEC;
+  --ground:#F5F3F2; --surface:#ffffff; --raised:#EEEAEA; --border:#E2D9D9; --rule:#F0EBEB; --control:#CFC5C5;
+  --text:#1B1616; --muted:#6E6464; --ink-2:#3D3535;
+  --ok:#2E6B2E; --ok-bg:#E8F3E8; --bad:#B3261E; --bad-bg:#FBEAE8; --bad-line:#EDC3BF;
+  --info:#1F5C8B; --info-bg:#E8F1F8; --info-line:#B9D3E8; --warn:#8A5A00; --warn-bg:#FFF4E0;
+  --radius:14px; --radius-s:10px;
   --font:"Geist", Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
 }
 *{box-sizing:border-box}
 html,body{margin:0;min-height:100%}
-body{font-family:var(--font);background:var(--ground);color:var(--text);font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased}
+body{font-family:var(--font);background:var(--ground);color:var(--text);font-size:15px;line-height:1.45;-webkit-font-smoothing:antialiased}
 button{font:inherit;color:inherit;cursor:pointer;background:none;border:0;padding:0}
-button:disabled{cursor:not-allowed}
-button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-input,textarea,select{font:inherit;width:100%;padding:10px 12px;border:1px solid var(--control);border-radius:var(--radius-control);background:#fff;color:var(--text);min-height:40px}
-textarea{min-height:88px;resize:vertical}
+button:disabled{cursor:not-allowed;opacity:.6}
+button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible,a:focus-visible,label:focus-within{outline:3px solid #E9B8B8;outline-offset:2px}
+input,textarea,select{font:inherit;width:100%;padding:11px 12px;border:1px solid var(--control);border-radius:var(--radius-s);background:#fff;color:var(--text);min-height:46px;font-size:16px}
+textarea{min-height:84px;resize:vertical}
 .num{font-variant-numeric:tabular-nums}
 .muted{color:var(--muted)}
-.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);opacity:0}
 h1{font-size:24px;font-weight:700;line-height:1.2;margin:0;letter-spacing:-.01em}
-h2{font-size:16px;font-weight:500;margin:0}
-.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-card)}
-.pad{padding:20px}
+h2{font-size:17px;font-weight:600;margin:0}
+h3{font-size:17px;font-weight:600;margin:0 0 8px}
 
-/* Buttons */
-.btn-primary{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 18px;border-radius:var(--radius-control);background:var(--accent);color:var(--accent-ink);font-weight:500;font-size:15px;white-space:nowrap}
+/* Shared buttons */
+.btn-primary{display:inline-flex;align-items:center;justify-content:center;min-height:52px;padding:0 20px;border-radius:var(--radius-s);background:var(--accent);color:#fff;font-weight:600;font-size:16px;width:auto}
+.btn-primary:hover{background:var(--accent-2)}
 .btn-primary:disabled{background:var(--control);color:#4d4d4d}
-.btn-second{display:inline-flex;align-items:center;justify-content:center;min-height:40px;padding:0 14px;border-radius:var(--radius-control);border:1px solid var(--control);background:#fff;color:var(--text);font-weight:500;white-space:nowrap}
+.btn-primary.block{display:flex;width:100%}
+.btn-second{display:inline-flex;align-items:center;justify-content:center;min-height:46px;padding:0 16px;border-radius:var(--radius-s);border:1.5px solid var(--control);background:#fff;color:var(--text);font-weight:600}
 .btn-second:hover{border-color:var(--text)}
-.btn-danger{display:inline-flex;align-items:center;justify-content:center;min-height:40px;padding:0 14px;border-radius:var(--radius-control);background:var(--negative);color:#fff;font-weight:500}
-.link-btn{color:var(--muted);text-decoration:underline;text-underline-offset:3px;font-size:13px;padding:6px 0;text-align:left}
+.btn-second.block{display:flex;width:100%}
+.btn-danger{display:inline-flex;align-items:center;justify-content:center;min-height:46px;padding:0 16px;border-radius:var(--radius-s);background:var(--bad);color:#fff;font-weight:600}
+.link-btn{color:var(--muted);text-decoration:underline;text-underline-offset:3px;font-size:14px;padding:6px 0;text-align:left}
 .link-btn:hover{color:var(--text)}
-.block{display:flex;width:100%}
-.err-text{color:var(--negative);font-size:13px;margin:8px 0 0;min-height:1em}
+.err-text{color:var(--bad);font-size:14px;margin:10px 0 0;min-height:1em}
+.note-hint{color:var(--bad);font-size:13px;margin:8px 0 0}
 
 /* Sign in */
-.signin{min-height:100vh;display:flex;align-items:flex-start;justify-content:center;padding:56px 20px 80px}
-.signin-col{width:100%;max-width:420px}
-.brand-lg{display:flex;align-items:center;gap:14px;margin-bottom:28px}
-.brand-lg img{width:56px;height:56px;border-radius:50%;background:#fff;flex:none}
-.divider{height:1px;background:var(--rule);margin:28px 0}
+.signin{min-height:100vh;display:flex;align-items:flex-start;justify-content:center;padding:48px 18px 80px}
+.signin-col{width:100%;max-width:440px}
+.brand-lg{display:flex;align-items:center;gap:14px;margin-bottom:26px}
+.brand-lg img{width:60px;height:60px;border-radius:50%;background:#fff;flex:none}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px}
+.divider{height:14px}
 .stack{display:grid;gap:8px;margin-top:14px}
-.stack label{font-size:13px;font-weight:500;color:var(--ink-2)}
+.stack label{font-size:14px;font-weight:600;color:var(--ink-2)}
 .note{font-size:13px;color:var(--muted);margin:10px 0 0}
 
-/* Shell */
-.side{position:fixed;left:0;top:0;bottom:0;width:240px;padding:20px 14px;display:flex;flex-direction:column;gap:24px;background:var(--ground);border-right:1px solid var(--border)}
-.brand{display:flex;align-items:center;gap:10px;padding:0 8px}
-.brand img{width:36px;height:36px;border-radius:50%;background:#fff;flex:none}
-.brand b{display:block;font-size:14px;font-weight:500}
-.brand small{display:block;font-size:12px;color:var(--muted)}
-.nav{display:grid;gap:2px}
-.nav-item{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:34px;padding:0 10px;border-radius:6px;text-align:left;color:var(--ink-2);font-size:14px;width:100%}
-.nav-item:hover{background:var(--rule)}
-.nav-item.on{background:var(--active);color:var(--text);font-weight:500}
-.count{font-size:12px;background:var(--accent);color:#fff;border-radius:999px;padding:1px 7px;font-weight:500}
-.side-foot{margin-top:auto;display:grid;gap:10px;padding:16px 8px 0;border-top:1px solid var(--border)}
-.me b{display:block;font-weight:500}
-.me small{color:var(--muted);font-size:12px}
-.main{margin-left:240px;padding:32px 40px 150px;max-width:1080px}
-.bottom-nav{display:none}
-.pagehead{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:18px;flex-wrap:wrap}
-.crumbs{font-size:13px;color:var(--muted);margin-bottom:6px;display:flex;gap:6px;flex-wrap:wrap}
-.crumbs button{color:var(--muted);text-decoration:underline;text-underline-offset:3px}
+/* Top bar and tabs */
+.head{position:sticky;top:0;z-index:20;box-shadow:0 1px 0 var(--border)}
+.topbar{background:var(--accent);color:#fff;padding:12px 16px}
+.brand{display:flex;align-items:center;gap:12px;max-width:760px;margin:0 auto}
+.brand img{width:40px;height:40px;border-radius:50%;background:#fff;flex:none}
+.brand b{display:block;font-size:17px;font-weight:600;line-height:1.15}
+.brand small{display:block;font-size:12.5px;opacity:.85}
+.tabs{background:#fff}
+.tabs-in{max-width:760px;margin:0 auto;display:flex;gap:4px;padding:0 10px;align-items:center;overflow-x:auto}
+.tabs button{min-height:52px;padding:0 14px;font-weight:600;color:var(--muted);border-bottom:3px solid transparent;white-space:nowrap}
+.tabs button.on{color:var(--accent);border-bottom-color:var(--accent)}
+.tabs .spacer{flex:1}
+.count{display:inline-block;min-width:22px;text-align:center;font-size:12px;background:var(--accent);color:#fff;border-radius:999px;padding:1px 7px;margin-left:4px;font-weight:600}
+.tabs button.edit-switch{min-height:38px;margin:7px 0 7px auto;padding:0 12px;border-radius:999px;border:1.5px solid var(--control);border-bottom-width:1.5px;font-size:14px;font-weight:600;color:var(--ink-2);white-space:nowrap}
+.tabs button.edit-switch.on{background:var(--warn-bg);border-color:#D9B66A;color:#6B4700}
+
+.page{max-width:760px;margin:0 auto;padding:18px 16px 170px}
+.pagehead{margin:4px 0 14px}
+.crumbs{font-size:14px;color:var(--muted);margin-bottom:6px;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.crumbs button{color:var(--accent);font-weight:600;text-decoration:underline;text-underline-offset:3px;padding:4px 0}
 .pagehead .sub{margin:6px 0 0;color:var(--muted)}
-.finding{margin:14px 0 0;font-size:14px;color:var(--ink-2)}
-.finding b{color:var(--accent);font-weight:500}
-.banner{font-size:13px;padding:10px 12px;border-radius:var(--radius-control);background:var(--raised);color:var(--ink-2);margin:0 0 16px}
+.finding{margin:0 0 16px;font-size:15px;color:var(--ink-2)}
+.finding b{color:var(--accent);font-weight:600}
+.notice{font-size:14px;padding:12px 14px;border-radius:var(--radius-s);background:var(--info-bg);border:1px solid var(--info-line);color:#17466B;margin:0 0 14px}
+.notice.warn{background:var(--warn-bg);border-color:#E9CF94;color:#6B4700}
+.notice.bad{background:var(--bad-bg);border-color:var(--bad-line);color:#7A1A14}
+.notice b{font-weight:600}
+.section-title{font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:22px 0 8px}
+.section-title:first-child{margin-top:0}
+.station-addr{font-size:13px;color:var(--muted);margin:-4px 0 10px}
 
-/* Counts and lists */
-.counts{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin:0 0 20px}
-.count-card{border:1px solid var(--border);background:var(--surface);border-radius:var(--radius-card);padding:12px;text-align:left;min-height:61px}
-.count-card span{display:block;font-size:13px;color:var(--muted)}
-.count-card strong{display:block;font-size:16px;font-weight:500;font-variant-numeric:tabular-nums}
-.count-card.on{border:1.5px solid var(--text);background:var(--active)}
-.count-card.fail strong{color:var(--accent)}
-.station{margin-bottom:20px}
-.station-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin:0 0 8px;flex-wrap:wrap}
-.station-head h2{font-size:16px}
-.station-head span{font-size:13px;color:var(--muted)}
-.list{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-card);overflow:hidden}
-.row{display:grid;grid-template-columns:auto auto minmax(0,1fr) auto auto auto;align-items:center;gap:12px;min-height:56px;padding:10px 14px;border-top:1px solid var(--rule);background:var(--surface)}
-.row:first-child{border-top:0}
-.row.dragging{opacity:.4}
-.row-main{text-align:left;min-width:0;display:block}
-.row-title{display:block;font-weight:500}
-.row-sub{display:block;font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.row-meta{font-size:13px;color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums}
-.row-meta.fail{color:var(--accent);font-weight:500}
-.row-meta.done{color:var(--positive)}
-.dot{width:10px;height:10px;border-radius:50%;background:var(--control);flex:none}
-.dot.prog{background:var(--muted)}
-.dot.done{background:var(--positive)}
-.dot.fail{background:var(--accent)}
-.grip{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:6px;color:var(--muted);touch-action:none;cursor:grab;user-select:none;font-size:18px;border:1px solid var(--border);background:#fff}
-.ghost-btn{min-height:32px;padding:0 10px;border-radius:6px;border:1px solid var(--control);background:#fff;font-size:13px;white-space:nowrap}
-.ghost-btn:hover{border-color:var(--text)}
-.ghost-btn.fail{color:var(--accent);border-color:var(--accent)}
-.edit-btn{min-height:32px;padding:0 10px;border-radius:6px;font-size:13px;color:var(--muted);border:1px solid var(--border);background:#fff}
-.edit-btn:hover{color:var(--text);border-color:var(--control)}
+/* Filter chips */
+.chips{display:flex;gap:8px;overflow-x:auto;margin:0 0 14px;padding-bottom:2px}
+.chip-btn{min-height:40px;padding:0 14px;border-radius:999px;border:1.5px solid var(--control);background:#fff;font-weight:600;font-size:14px;white-space:nowrap;color:var(--ink-2)}
+.chip-btn.on{background:var(--text);border-color:var(--text);color:#fff}
+.chip-btn.fail{color:var(--accent)}
+.chip-btn.fail.on{background:var(--accent);border-color:var(--accent);color:#fff}
 
-/* Problems */
-.problem{padding:14px;border-top:1px solid var(--rule);display:grid;gap:8px}
+/* Unit and checklist cards */
+.card-list{display:grid;gap:10px}
+.unit{background:#fff;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.unit-row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:10px;padding:0 0 0 0}
+.unit-main{text-align:left;padding:16px 16px;min-width:0;display:block;min-height:76px;width:100%}
+.unit-name{display:block;font-size:18px;font-weight:600;line-height:1.2}
+.unit-info{display:block;font-size:13.5px;color:var(--muted);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.unit-who{display:block;font-size:13px;color:var(--info);font-weight:600;margin-top:6px}
+.unit-side{padding:0 14px 0 0;display:flex;align-items:center;gap:8px;justify-self:end}
+.status{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;padding:5px 10px;border-radius:999px;background:var(--raised);color:var(--ink-2);white-space:nowrap}
+.status::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--control)}
+.status.prog{background:var(--info-bg);color:var(--info)} .status.prog::before{background:var(--info)}
+.status.done{background:var(--ok-bg);color:var(--ok)} .status.done::before{background:var(--ok)}
+.status.fail{background:var(--bad-bg);color:var(--bad)} .status.fail::before{background:var(--bad)}
+.unit-foot{display:flex;justify-content:space-between;align-items:center;gap:8px;border-top:1px solid var(--rule);padding:8px 12px;background:#FCFBFB;flex-wrap:wrap}
+.report-link{min-height:36px;font-size:14px;font-weight:600;color:var(--accent);padding:0 4px}
+.chev{font-size:22px;color:var(--muted);padding-right:2px}
+
+/* Layout editing (admin) */
+.edit-row{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-left:auto}
+.edit-row button{min-height:36px;padding:0 10px;border-radius:8px;border:1.5px solid var(--control);background:#fff;font-size:13px;font-weight:600;color:var(--ink-2);white-space:nowrap}
+.edit-row button:hover{border-color:var(--text)}
+.edit-row button:disabled{opacity:.35;cursor:not-allowed}
+.edit-row button.edit{border-color:var(--accent);color:var(--accent)}
+.edit-only{display:none}
+.editing .edit-only{display:block}
+.editing .edit-only.flex{display:flex}
+.editing .unit-side{display:none}
+.editing .unit-row{grid-template-columns:minmax(0,1fr)}
+.editing .unit-foot{background:#FFFBF2}
+.add-btn{display:flex;align-items:center;justify-content:center;width:100%;min-height:52px;border-radius:var(--radius);border:2px dashed var(--accent);background:#fff;color:var(--accent);font-weight:600;font-size:15px;margin-top:10px}
+.add-btn:hover{background:var(--accent-soft)}
+.editing .page{box-shadow:inset 6px 0 0 #E9B94A}
+.edit-tray{position:fixed;left:0;right:0;bottom:0;z-index:30;background:#1B1616;color:#fff;padding:12px 16px calc(12px + env(safe-area-inset-bottom));display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;box-shadow:0 -6px 18px rgba(0,0,0,.25)}
+.edit-tray p{margin:0;font-size:14px;flex:1 1 100%}
+.edit-tray p b{color:#F3CF7B}
+.tray-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end;flex:1 1 100%}
+.tray-link{color:#fff;font-size:14px;text-decoration:underline;text-underline-offset:3px;padding:10px 6px}
+.tray-done{min-height:44px;padding:0 18px;border-radius:var(--radius-s);background:#F3CF7B;color:#2B1D00;font-weight:700}
+
+/* Check page */
+.back-link{font-size:15px;font-weight:600;color:var(--accent);display:inline-flex;align-items:center;gap:4px;min-height:40px;padding-right:8px}
+.syncline{font-size:13px;color:var(--muted);margin:8px 0 0}
+.syncline.off{color:var(--warn)}
+.panel{background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:14px}
+.panel-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+.panel-head span{font-size:13px;color:var(--muted)}
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.fields label,.field-label{display:block;font-size:14px;font-weight:600;color:var(--ink-2);margin:0 0 6px}
+.picker-label{font-size:14px;font-weight:600;color:var(--ink-2);margin:14px 0 6px;display:flex;justify-content:space-between;align-items:baseline}
+.picker-label span{font-weight:400;color:var(--muted);font-size:13px}
+.picker{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.picker button{min-height:58px;border-radius:var(--radius-s);border:1.5px solid var(--control);background:#fff;font-weight:700;font-size:17px;line-height:1.1}
+.picker button small{display:block;font-size:11.5px;font-weight:500;color:var(--muted);margin-top:3px}
+.picker button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.picker button.on small{color:#F5DADA}
+.fyi{font-size:13px;color:var(--info);background:var(--info-bg);border:1px solid var(--info-line);border-radius:var(--radius-s);padding:9px 11px;margin-top:12px}
+.zjump{display:flex;gap:6px;overflow-x:auto;margin:6px 0 14px;padding-bottom:2px}
+.zjump a{white-space:nowrap;font-size:13.5px;padding:7px 12px;border-radius:999px;border:1.5px solid var(--control);background:#fff;color:var(--ink-2);text-decoration:none;font-weight:600}
+.zjump a.fail{border-color:var(--bad);color:var(--bad);background:var(--bad-bg)}
+.zjump a.done{border-color:var(--ok);color:var(--ok);background:var(--ok-bg)}
+
+.zone{background:#fff;border:1px solid var(--border);border-radius:var(--radius);margin-bottom:14px;overflow:hidden;scroll-margin-top:150px}
+.zone-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:14px 16px;background:#FBF9F9;border-bottom:1px solid var(--rule);flex-wrap:wrap}
+.zone-head h2{font-size:16px;flex:1;min-width:0}
+.item{padding:14px 16px;border-top:1px solid var(--rule)}
+.zone .item:first-of-type{border-top:0}
+.item.abn{background:#FFF9F8}
+.item-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.item-name{font-weight:600;font-size:16px;line-height:1.3;flex:1;min-width:0}
+.item-desc{margin:8px 0 0;font-size:14px;color:var(--ink-2)}
+.details-btn{font-size:13px;color:var(--accent);font-weight:600;min-height:32px;padding:0 2px;white-space:nowrap}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.seg button{min-height:52px;border-radius:var(--radius-s);border:1.5px solid var(--control);background:#fff;font-weight:700;font-size:16px;color:var(--ink-2)}
+.seg .norm.on{background:var(--ok);border-color:var(--ok);color:#fff}
+.seg .abn.on{background:var(--bad);border-color:var(--bad);color:#fff}
+.detail{margin-top:12px;padding:14px;border-radius:var(--radius-s);background:var(--bad-bg);border:1px solid var(--bad-line)}
+.q{display:block;font-weight:700;font-size:15px;color:#7A1A14;margin-bottom:6px}
+.fixgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.fixgrid button{min-height:48px;border-radius:var(--radius-s);border:1.5px solid var(--control);background:#fff;font-weight:600;font-size:15px;line-height:1.15;padding:6px}
+.fixgrid .fixed.on{background:var(--ok);border-color:var(--ok);color:#fff}
+.fixgrid .unable.on{background:var(--text);border-color:var(--text);color:#fff}
+.photo-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:12px}
+.photo-row img{width:96px;height:96px;object-fit:cover;border-radius:var(--radius-s);border:1px solid var(--border)}
+.photo-btn{display:inline-flex;align-items:center;justify-content:center;min-height:46px;padding:0 16px;border-radius:var(--radius-s);border:1.5px dashed var(--accent);color:var(--accent);font-weight:600;background:#fff;cursor:pointer}
+.zone-add{display:flex;align-items:center;justify-content:center;min-height:48px;width:100%;border-top:1px dashed var(--accent);color:var(--accent);font-weight:600;background:#fff}
+.zone-add:hover{background:var(--accent-soft)}
+
+/* Sticky bottom bar on check */
+.bar{position:fixed;left:0;right:0;bottom:0;z-index:15;background:#fff;border-top:1px solid var(--border);padding:10px 16px calc(10px + env(safe-area-inset-bottom));box-shadow:0 -6px 18px rgba(0,0,0,.06)}
+.bar-in{max-width:760px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.bar p{margin:0;font-size:14px;color:var(--ink-2)}
+.bar .btn-primary{min-width:200px}
+.editing .bar{display:none}
+
+.foot{max-width:760px;margin:0 auto;padding:0 16px 150px;font-size:13px;color:var(--muted)}
+.foot .link-btn{font-size:13px}
+
+/* Problems and cards */
+.problem{padding:14px 16px;border-top:1px solid var(--rule);display:grid;gap:8px}
 .problem:first-child{border-top:0}
 .problem-top{display:flex;justify-content:space-between;gap:12px;align-items:baseline;flex-wrap:wrap}
-.problem .who{font-size:13px;color:var(--muted)}
+.who{font-size:13px;color:var(--muted)}
 .problem-actions{display:flex;gap:8px;flex-wrap:wrap}
-.tag{font-size:12px;border-radius:999px;padding:2px 9px;background:var(--raised);color:var(--ink-2);white-space:nowrap}
-.tag.red{background:var(--accent);color:#fff}
-.problems-card{margin-bottom:16px;overflow:hidden}
-.problems-card > .card-head{padding:12px 14px;border-bottom:1px solid var(--rule);display:flex;justify-content:space-between;align-items:center;gap:12px}
+.problem-actions .btn-second{min-height:40px;font-size:14px}
+.tag{display:inline-block;font-size:12.5px;font-weight:700;padding:3px 9px;border-radius:999px;background:var(--raised);color:var(--ink-2)}
+.tag.red{background:var(--bad-bg);color:var(--bad)}
+.pcard{background:#fff;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:14px}
+.pcard-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:14px 16px;border-bottom:1px solid var(--rule)}
+.pcard-head p{margin:4px 0 0;font-size:13.5px;color:var(--muted)}
 
-/* Check */
-.zjump{display:flex;gap:6px;overflow-x:auto;margin:0 0 16px;padding-bottom:4px}
-.zjump a{flex:none;font-size:13px;padding:6px 12px;border-radius:999px;border:1px solid var(--control);color:var(--ink-2);text-decoration:none;white-space:nowrap;background:#fff}
-.zjump a.done{background:var(--pill-positive-bg);border-color:transparent;color:var(--pill-positive-ink)}
-.zjump a.fail{border-color:var(--accent);color:var(--accent);font-weight:500}
-.check-card{margin-bottom:16px;overflow:hidden}
-.check-head{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--rule)}
-.check-head h2{flex:1;font-size:15px}
-.item{padding:14px;border-top:1px solid var(--rule)}
-.item:first-of-type{border-top:0}
-.item.fail{box-shadow:inset 3px 0 0 var(--accent)}
-.item-top{display:flex;align-items:center;gap:10px}
-.item-name{flex:1;font-weight:500;min-width:0}
-.details-btn{font-size:13px;color:var(--muted);text-decoration:underline;text-underline-offset:3px;padding:6px 0}
-.item-desc{font-size:13px;color:var(--ink-2);margin:8px 0 0;max-width:62ch}
-.seg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px;max-width:340px}
-.seg button{min-height:44px;border-radius:var(--radius-control);border:1px solid var(--control);background:#fff;font-weight:500;color:var(--ink-2)}
-.seg button.pass.on{background:var(--text);border-color:var(--text);color:#fff}
-.seg button.fail.on{background:var(--accent);border-color:var(--accent);color:#fff}
-.fixwhat{margin-top:12px;display:grid;gap:8px;max-width:520px}
-.fixwhat .label{font-size:13px;color:var(--ink-2);font-weight:500}
-.fixgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.fixgrid button{min-height:40px;border-radius:var(--radius-control);border:1px solid var(--control);background:#fff;font-size:14px;color:var(--ink-2)}
-.fixgrid button.on{border-color:var(--text);background:var(--active);color:var(--text);font-weight:500}
-.fixgrid button.unable.on{border-color:var(--accent);color:var(--accent);background:#fff;box-shadow:inset 0 0 0 1px var(--accent)}
-.note-field{margin-top:4px}
-.note-hint{font-size:12px;color:var(--accent);margin:4px 0 0}
-.add-row{display:block;width:100%;text-align:left;padding:12px 14px;color:var(--accent);font-weight:500;border-top:1px dashed var(--control)}
-.sticky-bar{position:fixed;left:240px;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--border);padding:12px 40px;display:flex;align-items:center;justify-content:space-between;gap:16px;z-index:15}
-.sticky-bar p{margin:0;font-size:13px;color:var(--muted)}
-.sticky-bar .btn-primary{min-width:240px}
-.sticky-bar .btn-primary[aria-disabled="true"]{background:var(--control);color:#4d4d4d}
+/* Bottom sheet and scrim */
+.scrim{position:fixed;inset:0;background:rgba(20,12,12,.45);z-index:40}
+.sheet{position:fixed;left:0;right:0;bottom:0;max-height:88vh;overflow:auto;z-index:41;background:#fff;border-radius:18px 18px 0 0;padding:18px 18px calc(18px + env(safe-area-inset-bottom));box-shadow:0 -10px 30px rgba(0,0,0,.2)}
+@media (min-width:720px){.sheet{left:50%;right:auto;transform:translateX(-50%);width:520px;bottom:24px;border-radius:var(--radius)}}
+.sheet label{display:block;font-size:14px;font-weight:600;color:var(--ink-2);margin:12px 0 6px}
+.sheet .actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:18px}
+.sheet .actions .btn-danger{margin-right:auto}
+.report{white-space:pre-wrap;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13.5px;background:var(--raised);border-radius:var(--radius-s);padding:12px;max-height:50vh;overflow:auto}
+.missing li{margin:0 0 8px}
+.missing button{text-align:left;color:var(--accent);font-weight:600;text-decoration:underline;text-underline-offset:3px;padding:4px 0}
+.missing{padding-left:20px;margin:12px 0 0}
 
-/* Sheets and toast */
-.toast{position:fixed;left:50%;bottom:104px;transform:translateX(-50%) translateY(16px);background:var(--text);color:#fff;padding:10px 16px;border-radius:var(--radius-control);opacity:0;transition:opacity .2s,transform .2s;z-index:60;max-width:90vw;pointer-events:none;font-size:14px}
-.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-.scrim{position:fixed;inset:0;background:rgba(10,10,10,.4);z-index:40}
-.sheet{position:fixed;left:50%;bottom:0;transform:translateX(-50%);width:100%;max-width:560px;background:var(--surface);border-radius:12px 12px 0 0;padding:20px;z-index:41;max-height:85vh;overflow:auto;border:1px solid var(--border);border-bottom:0}
-.sheet h3{margin:0 0 4px;font-size:16px;font-weight:500}
-.sheet label{display:block;font-size:13px;font-weight:500;color:var(--ink-2);margin:12px 0 6px}
-.actions{display:flex;gap:10px;margin-top:18px;justify-content:flex-end;flex-wrap:wrap}
-.acct{display:flex;justify-content:space-between;align-items:center;width:100%;min-height:52px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-control);margin-top:8px;text-align:left;background:#fff}
-.acct:hover{border-color:var(--text)}
-.acct small{color:var(--muted);font-size:12px}
-.report{white-space:pre-wrap;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px;background:var(--ground);border:1px solid var(--border);border-radius:var(--radius-control);padding:12px;max-height:46vh;overflow:auto;margin:10px 0 0}
-.missing li{margin:4px 0}
-.missing button{color:var(--accent);text-decoration:underline;text-underline-offset:3px;text-align:left}
-
-@media (max-width:899px){
-  .side{display:none}
-  .main{margin-left:0;padding:20px 16px 150px}
-  .counts{display:flex;overflow-x:auto;gap:8px;margin-bottom:16px;padding-bottom:2px}
-  .count-card{flex:none;min-width:112px}
-  .list .row[data-id]{grid-template-columns:auto minmax(0,1fr) auto;grid-template-areas:"dot main meta" ". btns btns"}
-  .list .row[data-id] .grip{display:none}
-  .list .row[data-id] .dot{grid-area:dot}
-  .list .row[data-id] .row-main{grid-area:main}
-  .list .row[data-id] .row-meta{grid-area:meta}
-  .list .row[data-id] .ghost-btn,.list .row[data-id] .edit-btn{grid-area:btns;justify-self:start}
-  .row > span:empty{display:none}
-  .bottom-nav{display:flex;position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--border);z-index:20}
-  .bottom-nav button{flex:1;min-height:56px;color:var(--muted);font-size:14px}
-  .bottom-nav button.on{color:var(--text);font-weight:500;box-shadow:inset 0 2px 0 var(--text)}
-  .sticky-bar{left:0;padding:12px 16px;bottom:56px}
-  .sticky-bar .btn-primary{min-width:0;flex:1}
-  .toast{bottom:150px}
-}
+.toast{position:fixed;left:50%;top:96px;transform:translate(-50%,-160%);background:#1B1616;color:#fff;padding:12px 18px;border-radius:999px;font-size:14px;z-index:60;transition:transform .25s ease;max-width:92vw;text-align:center}
+.toast.show{transform:translate(-50%,0)}
 </style>
 </head>
 <body>
 <div id="app"></div>
 <div id="sheet"></div>
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
-
 <script>
 /* =========================================================
    CONFIG. Fill these in before go live. Nothing else needs editing
    for a normal rollout.
    ========================================================= */
 const CONFIG = {
-  version: '1.3.2',
+  version: '1.4.0',
   versionDate: '2026-11-18',
   // Shared layout Worker (North Country Cloudflare, workers.dev). Reads are public; admin writes need a Microsoft ID token.
   worker: 'https://fd13-apparatus.d-boyce.workers.dev',
@@ -505,17 +535,24 @@ const SEED = {
   }
 };
 
+
 /* =========================================================
    HELPERS AND STATE
    ========================================================= */
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const uid = () => Math.random().toString(36).slice(2, 10);
-const todayKey = () => new Date().toDateString();
-const dk = (apId, chk) => `${todayKey()}|${apId}|${chk}`;
+// Local calendar day as YYYY-MM-DD. Used for today's checks and for the shared copies.
+const localDay = (d = new Date()) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+const todayKey = () => localDay();
+const dk = (apId, chk) => `${localDay()}|${apId}|${chk}`;
+const serverKey = (apId, chk) => `p:${localDay()}|${apId}|${chk}`;
 const when = ts => new Date(ts).toLocaleString([], { month:'short', day:'numeric', hour:'numeric', minute:'2-digit' });
 const clock = ts => new Date(ts).toLocaleTimeString([], { hour:'numeric', minute:'2-digit' });
 const roleOf = u => !u ? '' : !u.ms ? 'Volunteer, no login' : u.admin ? 'Admin, Microsoft login' : 'Crew, Microsoft login';
-const STATUS_WORDS = { none:'Not started', prog:'In progress', done:'Done today', fail:'Fail found' };
+const STATUS_WORDS = { none:'Not started', prog:'In progress', done:'Done today', fail:'Abnormal found' };
+const CLAIM_MS = 20 * 60 * 1000;          // a claim counts as live for 20 minutes after the last change
+const VEH = 'vehicle';                    // pseudo checklist id for hours, mileage, fuel and DEF
+const FUEL_OPTS = [['1/4','25%'],['1/2','50%'],['3/4','75%'],['Full','100%']];
 
 function buildZones(chk, apId){
   return TPL[chk].map((z, zi) => ({
@@ -531,11 +568,13 @@ function fresh(){
     adminMode: false,
     stOrder: JSON.parse(JSON.stringify(SEED.stOrder)),
     apEdits: {},
+    extraAps: [],           // units added by admins, same shape as APP_LIST
     chkOrder: JSON.parse(JSON.stringify(SEED.chkOrder)),
     zones: JSON.parse(JSON.stringify(SEED.zones)),
-    drafts: {},
-    history: [],     // submitted checks
-    problems: [],    // open and resolved problems: check items and manual requests
+    drafts: {},             // per device, per day: { ans:{}, ... }
+    photos: {},             // per device only, never shared: { dk: { itemId: dataURL } }
+    history: [],            // submitted checks
+    problems: [],           // open and resolved problems
     screen: 'signin',
     apId: null,
     chk: null,
@@ -544,21 +583,34 @@ function fresh(){
     open: {},
     msErr: '',
     volErr: '',
-    lastReport: null
+    lastReport: null,
+    savedAt: 0
   };
 }
 
-const PERSIST = ['stOrder','apEdits','chkOrder','zones','drafts','history','problems'];
-function save(){
+const PERSIST = ['stOrder','apEdits','extraAps','chkOrder','zones','drafts','history','problems'];
+const PHOTO_KEY = () => CONFIG.storageKey + '_photos';
+function savePersist(){
   const o = {};
   PERSIST.forEach(k => o[k] = S[k]);
   o.seedVersion = CONFIG.seedVersion;
-  try { localStorage.setItem(CONFIG.storageKey, JSON.stringify(o)); } catch(e) {}
+  S.savedAt = Date.now();
+  try { localStorage.setItem(CONFIG.storageKey, JSON.stringify(o)); return true; }
+  catch(e) { toast('This phone is out of room to save. Download the data file and clear old checks.'); return false; }
+}
+function savePhotos(){
+  try { localStorage.setItem(PHOTO_KEY(), JSON.stringify(S.photos)); }
+  catch(e) { toast('This photo is too large to keep on this phone.'); }
+}
+// Every change: save on this phone, send the open check to the shared copy, and push layout changes for admins.
+function save(){
+  savePersist();
+  if (S.screen === 'check' && S.apId && S.chk) queuePush(S.apId, S.chk);
   pushSharedLayout();
 }
 
 /* ---------- Shared layout (Worker) ---------- */
-const LAYOUT_FIELDS = ['stOrder', 'chkOrder', 'apEdits', 'zones'];
+const LAYOUT_FIELDS = ['stOrder', 'chkOrder', 'apEdits', 'zones', 'extraAps'];
 let lastPushed = '';
 let sharedReady = false;   // set once the shared layout has been read, so a stale device never overwrites it
 function layoutJSON(){
@@ -577,7 +629,7 @@ async function loadSharedLayout(){
     if (!body || !body.state) return true;
     LAYOUT_FIELDS.forEach(k => { if (body.state[k] !== undefined) S[k] = body.state[k]; });
     lastPushed = layoutJSON();
-    try { localStorage.setItem(CONFIG.storageKey, JSON.stringify({ ...PERSIST.reduce((o,k)=>(o[k]=S[k],o),{}), seedVersion: CONFIG.seedVersion })); } catch(e) {}
+    savePersist();
     return true;
   } catch(e) { return false; }
 }
@@ -602,19 +654,126 @@ async function pushSharedLayout(){
       headers: { 'content-type': 'application/json', authorization: 'Bearer ' + token },
       body: now
     });
-    if (res.ok) lastPushed = now;
+    if (res.ok) { lastPushed = now; setSyncState(true); }
     else toast('Not saved for everyone. Try again in a moment.');
   } catch(e) {
     toast('Not saved for everyone. Check the connection and try again.');
   }
 }
+
+/* ---------- Shared check progress (Worker /progress) ----------
+   Each open check and each unit's vehicle values are one shared copy per day.
+   Answers merge item by item: the newer answer for an item wins. A check is
+   "claimed" by whoever touched it last, so the other phone sees who is on it. */
+const SHARE = { ok: null, at: 0 };        // ok: true when the last shared call worked, false when it failed, null before any call
+const HOLDERS = {};                       // 'apId|chk' -> { by, ts } claim from the shared copy
+let pullTimer = null;
+const pushTimers = {};
+
+function setSyncState(ok){
+  if (SHARE.ok === ok && Date.now() - SHARE.at < 5000) return;
+  SHARE.ok = ok; SHARE.at = Date.now();
+  const el = document.querySelector('[data-sync]');
+  if (el) el.textContent = syncText();
+}
+function syncText(){
+  const saved = S.savedAt ? clock(S.savedAt) : '';
+  if (!CONFIG.worker) return `Saved on this phone${saved ? ' at ' + saved : ''}.`;
+  if (SHARE.ok === false) return `Saved on this phone${saved ? ' at ' + saved : ''}. The shared copy is not reachable right now, so the crew cannot see this yet.`;
+  if (SHARE.ok === true) return `Saved${saved ? ' at ' + saved : ''} and shared with the crew.`;
+  return `Saved on this phone${saved ? ' at ' + saved : ''}.`;
+}
+
+// Merge two answer maps. Each entry carries ts, and the newer entry wins.
+function mergeMaps(a, b){
+  const out = { ...(a || {}) };
+  Object.keys(b || {}).forEach(k => {
+    const x = out[k], y = b[k];
+    if (!y) return;
+    if (!x || (y.ts || 0) > (x.ts || 0)) out[k] = y;
+  });
+  return out;
+}
+const claimFresh = c => !!c && Date.now() - (c.ts || 0) < CLAIM_MS;
+
+function queuePush(apId, chk){
+  if (!CONFIG.worker || !S.user) return;
+  const k = serverKey(apId, chk);
+  clearTimeout(pushTimers[k]);
+  pushTimers[k] = setTimeout(() => pushNow(apId, chk), 600);
+}
+async function pushNow(apId, chk){
+  if (!CONFIG.worker || !S.user) return;
+  const d = getDraft(apId, chk);
+  const body = {
+    key: serverKey(apId, chk),
+    doc: { ans: d.ans, claim: chk === VEH ? null : { by: S.user.name, ts: Date.now() } }
+  };
+  try {
+    const res = await fetch(CONFIG.worker + '/progress', {
+      method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body)
+    });
+    if (!res.ok) throw new Error('status ' + res.status);
+    const out = await res.json();
+    setSyncState(true);
+    applyDoc(body.key, out.doc, true);
+  } catch(e) { setSyncState(false); }
+}
+// Merge a shared copy into this device. Never saves back to the Worker from here, so there is no loop.
+function applyDoc(key, doc, fromPush){
+  if (!doc) return false;
+  const parts = key.replace(/^p:/, '').split('|');
+  const apId = parts[1], chk = parts[2];
+  if (!apId || !chk) return false;
+  const d = getDraft(apId, chk);
+  const before = JSON.stringify(d.ans);
+  d.ans = mergeMaps(d.ans, doc.ans || {});
+  if (chk !== VEH) HOLDERS[apId + '|' + chk] = doc.claim || null;
+  const changed = JSON.stringify(d.ans) !== before;
+  if (changed) savePersist();
+  if (changed && !fromPush) refreshIfIdle();
+  return changed;
+}
+async function pullDay(){
+  if (!CONFIG.worker || !S.user) return;
+  try {
+    const res = await fetch(CONFIG.worker + '/progress?day=' + localDay(), { cache: 'no-store' });
+    if (!res.ok) throw new Error('status ' + res.status);
+    const body = await res.json();
+    setSyncState(true);
+    let changed = false;
+    Object.keys(body.docs || {}).forEach(k => { if (applyDoc(k, body.docs[k], false)) changed = true; });
+    if (changed) refreshIfIdle();
+  } catch(e) { setSyncState(false); }
+}
+async function deleteShared(apId, chk){
+  if (!CONFIG.worker) return;
+  try {
+    await fetch(CONFIG.worker + '/progress?key=' + encodeURIComponent(serverKey(apId, chk)), { method: 'DELETE' });
+  } catch(e) { /* the shared copy expires on its own after a few days */ }
+}
+function startPulls(){
+  clearInterval(pullTimer);
+  pullTimer = setInterval(() => { if (S.user && !document.hidden) pullDay(); }, 15000);
+  pullDay();
+}
+// Redraw only when nobody is typing, so a note never loses focus while the crew writes.
+function refreshIfIdle(){
+  const a = document.activeElement;
+  if (a && (a.tagName === 'TEXTAREA' || a.tagName === 'INPUT') && document.getElementById('app').contains(a)) {
+    S.pendingRedraw = true;
+    return;
+  }
+  render();
+}
+
 function load(){
   const base = fresh();
   let o = null;
   try { o = JSON.parse(localStorage.getItem(CONFIG.storageKey) || 'null'); } catch(e) {}
   if (o) PERSIST.forEach(k => { if (o[k] !== undefined) base[k] = o[k]; });
+  try { base.photos = JSON.parse(localStorage.getItem(CONFIG.storageKey + '_photos') || '{}') || {}; } catch(e) { base.photos = {}; }
   // Layout seed: when this device's saved layout is from an older seed, take the built-in layout.
-  // Drafts, history and problems are kept.
   if (!o || o.seedVersion !== CONFIG.seedVersion) {
     base.stOrder = JSON.parse(JSON.stringify(SEED.stOrder));
     base.chkOrder = JSON.parse(JSON.stringify(SEED.chkOrder));
@@ -625,32 +784,43 @@ function load(){
 let S = load();
 
 const isAdminMode = () => !!(S.user && S.user.admin && S.adminMode);
-const AP = id => ({ ...APP_LIST.find(a => a.id === id), ...(S.apEdits[id] || {}) });
-const stAps = st => S.stOrder[st].map(AP);
+const ALL_APS = () => [...APP_LIST, ...(S.extraAps || [])];
+const AP = id => ({ ...(ALL_APS().find(a => a.id === id) || {}), ...(S.apEdits[id] || {}) });
+const stAps = st => (S.stOrder[st] || []).map(AP).filter(a => a && a.id);
 const zKey = () => `${S.apId}|${S.chk}`;
 const getZones = (apId, chk) => S.zones[`${apId}|${chk}`] || buildZones(chk, apId);
 const cloneZones = z => JSON.parse(JSON.stringify(z));
+// A draft holds the answers for one check on one unit today. The vehicle draft holds hours, mileage, fuel and DEF.
 function getDraft(apId, chk){
   const key = dk(apId, chk);
   if (!S.drafts[key]) S.drafts[key] = { ans:{} };
+  if (!S.drafts[key].ans) S.drafts[key].ans = {};
   return S.drafts[key];
 }
-// An item answer: { v:'pass'|'fail', fix:'fixed'|'unable'|null, note:'' }
+function photosFor(apId, chk){
+  const key = dk(apId, chk);
+  return (S.photos && S.photos[key]) || {};
+}
+function live(){ return S.user ? S.user.name : ''; }
 
 function openProblems(apId){
   const cutoff = Date.now() - CONFIG.knownWindowDays * 86400000;
   return S.problems.filter(p => p.status === 'open' && (!apId || p.apId === apId) && p.ts >= cutoff);
 }
 
+function answeredCount(apId, chk){
+  const d = S.drafts[dk(apId, chk)];
+  if (!d) return 0;
+  return getZones(apId, chk).flatMap(z => z.items).filter(i => d.ans[i.id] && d.ans[i.id].v).length;
+}
 function chkStatus(apId, chk){
   const items = getZones(apId, chk).flatMap(z => z.items);
-  const d = S.drafts[dk(apId, chk)];
-  const n = d ? items.filter(i => d.ans[i.id]).length : 0;
+  const n = answeredCount(apId, chk);
   if (n) return { k:'prog', label:`In progress, ${n} of ${items.length} answered` };
   const sub = S.history.find(h => h.day === todayKey() && h.apId === apId && h.chk === chk);
   if (sub) return sub.fails.length
-    ? { k:'fail', label:`Submitted ${clock(sub.ts)}, ${sub.fails.length} ${sub.fails.length === 1 ? 'fail' : 'fails'}` }
-    : { k:'done', label:`Submitted ${clock(sub.ts)}, all passed` };
+    ? { k:'fail', label:`Submitted ${clock(sub.ts)}, ${sub.fails.length} abnormal` }
+    : { k:'done', label:`Submitted ${clock(sub.ts)}, all normal` };
   return { k:'none', label:'Not started' };
 }
 function apStatus(apId){
@@ -660,38 +830,82 @@ function apStatus(apId){
   if (sts.some(s => s !== 'none')) return 'prog';
   return 'none';
 }
+// Someone else's live claim on a unit (any of its checks), if any.
+function holderFor(apId){
+  const me = live();
+  const hit = CHK_LIST.map(c => HOLDERS[apId + '|' + c.id]).find(c => claimFresh(c) && c.by !== me);
+  return hit || null;
+}
+
+/* =========================================================
+   HISTORY (the phone and browser Back button)
+   Each screen change is a history entry, so Back steps back through the app
+   instead of leaving it. Back from a sheet closes the sheet.
+   ========================================================= */
+let lastNavKey = '';
+let lastNav = null;
+function navSnap(){
+  if (!S.user) return null;
+  return { s: S.screen, a: S.apId, c: S.chk, m: S.sheet ? S.sheet.type : null };
+}
+function syncHistory(){
+  const snap = navSnap();
+  const key = JSON.stringify(snap);
+  if (key === lastNavKey) return;
+  const prev = lastNav;
+  lastNavKey = key;
+  lastNav = snap;
+  if (!snap) return;
+  // A sheet that was closed on the page: step back over its history entry instead of adding one.
+  if (prev && prev.m && !snap.m && prev.s === snap.s && prev.a === snap.a && prev.c === snap.c && history.state && history.state.nav && history.state.nav.m) {
+    history.back();
+    return;
+  }
+  const entry = { fd13: true, nav: { ...snap, m: snap.m } };
+  if (!history.state || !history.state.fd13) history.replaceState(entry, '');
+  else history.pushState(entry, '');
+}
+window.addEventListener('popstate', e => {
+  const nav = e.state && e.state.nav;
+  if (!nav || !S.user) return;
+  S.screen = nav.s; S.apId = nav.a; S.chk = nav.c;
+  S.sheet = null;
+  lastNav = { s: nav.s, a: nav.a, c: nav.c, m: null };
+  lastNavKey = JSON.stringify(lastNav);
+  render();
+});
 
 /* =========================================================
    SHELL AND VIEWS
    ========================================================= */
-function navItems(){
-  const open = S.problems.filter(p => p.status === 'open').length;
-  return `
-    <button class="nav-item ${['aps','chks','check'].includes(S.screen) ? 'on' : ''}" data-act="go" data-screen="aps">Apparatus</button>
-    <button class="nav-item ${S.screen === 'problems' ? 'on' : ''}" data-act="go" data-screen="problems">Open problems ${open ? `<span class="count num">${open}</span>` : ''}</button>`;
-}
+function openCount(){ return S.problems.filter(p => p.status === 'open').length; }
 
 function shell(main){
   const u = S.user;
-  const open = S.problems.filter(p => p.status === 'open').length;
-  return `<div class="app">
-    <aside class="side">
-      <div class="brand"><img src="logo.png" alt="Clark County Fire District 13 logo"><div><b>FD13 Apparatus</b><small>Clark County Fire District 13</small></div></div>
-      <nav class="nav" aria-label="Main">${navItems()}</nav>
-      <div class="side-foot">
-        ${u.admin ? `<button class="nav-item" data-act="toggle-admin" aria-pressed="${S.adminMode}">Admin mode <span class="muted">${S.adminMode ? 'On' : 'Off'}</span></button>
-          ${S.adminMode ? `<button class="link-btn" data-act="export">Download data file</button><button class="link-btn" data-act="reset">Reset this device</button>` : ''}` : ''}
-        <div class="me"><b>${esc(u.name)}</b><small>${esc(roleOf(u))}</small></div>
-        <button class="link-btn" data-act="signout">Sign out</button>
-        <small class="muted" style="font-size:12px">Version ${CONFIG.version}, ${CONFIG.versionDate}</small>
-      </div>
-    </aside>
-    <main class="main" id="main">${main}</main>
-    <nav class="bottom-nav" aria-label="Main">
-      <button class="${['aps','chks','check'].includes(S.screen) ? 'on' : ''}" data-act="go" data-screen="aps">Apparatus</button>
-      <button class="${S.screen === 'problems' ? 'on' : ''}" data-act="go" data-screen="problems">Problems${open ? ` (${open})` : ''}</button>
-      ${u.admin ? `<button data-act="toggle-admin">${S.adminMode ? 'Admin on' : 'Admin off'}</button>` : ''}
-    </nav>
+  const adm = isAdminMode();
+  const n = openCount();
+  const onApps = ['aps','chks','check'].includes(S.screen);
+  return `<div class="app ${adm ? 'editing' : ''}">
+    <div class="head">
+    <header class="topbar"><div class="brand">
+      <img src="logo.png" alt="Clark County Fire District 13 logo">
+      <div><b>FD13 Apparatus Check</b><small>Clark County Fire District 13</small></div>
+    </div></header>
+    <nav class="tabs" aria-label="Main"><div class="tabs-in">
+      <button class="${onApps ? 'on' : ''}" data-act="go" data-screen="aps" aria-current="${onApps}">Apparatus</button>
+      <button class="${S.screen === 'problems' ? 'on' : ''}" data-act="go" data-screen="problems" aria-current="${S.screen === 'problems'}">Open problems${n ? ` <span class="count num">${n}</span>` : ''}</button>
+      ${u.admin ? `<button class="edit-switch ${adm ? 'on' : ''}" data-act="toggle-admin" aria-pressed="${adm}">${adm ? 'Editing layout' : 'Edit layout'}</button>` : ''}
+    </div></nav>
+    </div>
+    <main class="page" id="main">${main}</main>
+    ${adm ? `<div class="edit-tray" role="region" aria-label="Layout editing">
+        <p><b>Editing the layout.</b> Every change saves for everyone right away. Use Move up, Move down and Edit on each row.</p>
+        <div class="tray-actions"><button class="tray-link" data-act="export">Download data file</button><button class="tray-link" data-act="reset">Reset this device</button><button class="tray-done" data-act="toggle-admin">Done</button></div>
+      </div>` : ''}
+    <footer class="foot">
+      <div>Signed in as ${esc(u.name)}, ${esc(roleOf(u))}. <button class="link-btn" data-act="signout">Sign out</button></div>
+      <div>Version ${CONFIG.version}, ${CONFIG.versionDate}</div>
+    </footer>
   </div>`;
 }
 
@@ -699,7 +913,7 @@ function viewSignin(){
   return `<div class="signin"><div class="signin-col">
     <div class="brand-lg"><img src="logo.png" alt="Clark County Fire District 13 logo"><div><h1>FD13 Apparatus Check</h1><div class="muted">Clark County Fire District 13</div></div></div>
 
-    <section class="card pad">
+    <section class="card">
       <h2>Paid staff</h2>
       <p class="muted" style="margin:6px 0 0">Sign in with your district Microsoft account.</p>
       <div style="margin-top:16px"><button class="btn-primary block" data-act="ms-open">Sign in with Microsoft</button></div>
@@ -708,7 +922,7 @@ function viewSignin(){
 
     <div class="divider"></div>
 
-    <section class="card pad">
+    <section class="card">
       <h2>Volunteer crews</h2>
       <p class="muted" style="margin:6px 0 0">No login. Enter your name and continue. Your name goes on the checks you submit.</p>
       <form class="stack" data-form="volunteer">
@@ -718,8 +932,61 @@ function viewSignin(){
         <div><button class="btn-second" type="submit">Continue</button></div>
       </form>
     </section>
-    <p class="note" style="text-align:center;margin-top:28px">FD13 Apparatus Check, version ${CONFIG.version}, ${CONFIG.versionDate}</p>
+    <p class="note" style="text-align:center;margin-top:28px">Version ${CONFIG.version}, ${CONFIG.versionDate}</p>
   </div></div>`;
+}
+
+function unitCard(a, s, adm, idx, count){
+  const holder = holderFor(a.id);
+  const pill = s === 'fail' ? 'fail' : s === 'done' ? 'done' : s === 'prog' ? 'prog' : '';
+  return `<article class="unit" data-id="${a.id}">
+    <div class="unit-row">
+      <button class="unit-main" data-act="open-ap" data-id="${a.id}" aria-label="${esc(a.name)}, ${esc(STATUS_WORDS[s])}">
+        <span class="unit-name">${esc(a.name)}</span>
+        <span class="unit-info">${esc(a.info || '')}</span>
+        ${holder ? `<span class="unit-who">${esc(holder.by)} is checking this unit now</span>` : ''}
+      </button>
+      <div class="unit-side"><span class="status ${pill}">${STATUS_WORDS[s]}</span><span class="chev" aria-hidden="true">&#8250;</span></div>
+    </div>
+    <div class="unit-foot">
+      ${adm ? `<div class="edit-row">
+          <button data-act="move" data-kind="ap" data-id="${a.id}" data-dir="-1" ${idx === 0 ? 'disabled' : ''}>Move up</button>
+          <button data-act="move" data-kind="ap" data-id="${a.id}" data-dir="1" ${idx === count - 1 ? 'disabled' : ''}>Move down</button>
+          <button class="edit" data-act="edit-ap" data-id="${a.id}">Edit</button>
+        </div>` : '<span></span>'}
+      <button class="report-link" data-act="req" data-id="${a.id}">Report a problem</button>
+    </div>
+  </article>`;
+}
+
+function viewAps(){
+  const adm = isAdminMode();
+  const all = ALL_APS().map(a => ({ a, s: apStatus(a.id) }));
+  const count = k => all.filter(x => k === 'all' || x.s === k).length;
+  const failing = all.filter(x => x.s === 'fail').map(x => AP(x.a.id).name);
+  const unable = S.problems.filter(p => p.status === 'open' && p.kind === 'check').length;
+  const finding = failing.length
+    ? `<b>${failing.length} ${failing.length === 1 ? 'unit has' : 'units have'} an abnormal today:</b> ${failing.map(esc).join(', ')}.${unable ? ` ${unable} open ${unable === 1 ? 'problem' : 'problems'} on the list.` : ''}`
+    : `No abnormal items today.${unable ? ` ${unable} open ${unable === 1 ? 'problem' : 'problems'} still on the list.` : ''}`;
+  const filters = [['all','All'],['none','Not started'],['prog','In progress'],['done','Done'],['fail','Abnormal']];
+  const chips = `<div class="chips" role="group" aria-label="Filter units">${filters.map(([k,l]) =>
+      `<button class="chip-btn ${k === 'fail' ? 'fail' : ''} ${S.filter === k ? 'on' : ''}" data-act="filter" data-id="${k}" aria-pressed="${S.filter === k}">${l} <span class="num">${count(k)}</span></button>`).join('')}</div>`;
+  const keep = x => S.filter === 'all' || x.s === S.filter;
+  const stations = STATIONS.map(st => {
+    const rows = stAps(st.id).map(a => ({ a, s: apStatus(a.id) }));
+    const shown = rows.filter(keep);
+    return `<section>
+      <div class="section-title">${esc(st.name)}</div>
+      <p class="station-addr">${esc(st.addr)}</p>
+      <div class="card-list" data-station="${st.id}">${shown.map(({a, s}, i) => unitCard(a, s, adm, rows.indexOf(rows.find(r => r.a.id === a.id)), rows.length)).join('') || '<p class="muted" style="margin:0">No units match this filter.</p>'}</div>
+      ${adm ? `<button class="add-btn" data-act="add-ap" data-station="${st.id}">+ Add a unit to ${esc(st.name)}</button>` : ''}
+    </section>`;
+  }).join('');
+  return `${pagehead(null, 'Apparatus', 'Tap a unit to start its checks.')}
+    <p class="finding">${finding}</p>
+    ${adm ? `<div class="notice warn"><b>Layout editing is on.</b> Use Move up, Move down and Edit on each unit. Add a unit with the button at the bottom of a station.</div>` : ''}
+    ${chips}
+    ${stations}`;
 }
 
 function pagehead(crumbs, title, sub, actions){
@@ -730,73 +997,43 @@ function pagehead(crumbs, title, sub, actions){
     </div>${actions ? `<div>${actions}</div>` : ''}</header>`;
 }
 
-function viewAps(){
-  const adm = isAdminMode();
-  const all = APP_LIST.map(a => ({ a, s: apStatus(a.id) }));
-  const count = k => all.filter(x => k === 'all' || x.s === k).length;
-  const failing = all.filter(x => x.s === 'fail').map(x => AP(x.a.id).name);
-  const unable = S.problems.filter(p => p.status === 'open' && p.kind === 'check').length;
-  const finding = failing.length
-    ? `<b>${failing.length} ${failing.length === 1 ? 'unit has' : 'units have'} a fail today:</b> ${failing.map(esc).join(', ')}.${unable ? ` ${unable} open ${unable === 1 ? 'problem' : 'problems'} on the list.` : ''}`
-    : `No fails today.${unable ? ` ${unable} open ${unable === 1 ? 'problem' : 'problems'} still on the list.` : ''}`;
-  const filters = [['all','All'],['none','Not started'],['prog','In progress'],['done','Done'],['fail','Fail']];
-  const cards = `<div class="counts" role="group" aria-label="Filter units">${filters.map(([k,l]) =>
-      `<button class="count-card ${k === 'fail' ? 'fail' : ''} ${S.filter === k ? 'on' : ''}" data-act="filter" data-id="${k}" aria-pressed="${S.filter === k}">
-        <span>${l}</span><strong class="num">${count(k)}</strong></button>`).join('')}</div>`;
-  const keep = x => S.filter === 'all' || x.s === S.filter;
-  const stations = STATIONS.map(st => {
-    const rows = stAps(st.id).map(a => ({ a, s: apStatus(a.id) })).filter(keep);
-    return `<section class="station">
-      <div class="station-head"><h2>${esc(st.name)}</h2><span>${esc(st.addr)}</span></div>
-      <div class="list" data-station="${st.id}">${rows.map(({a, s}) => apRow(a, s, adm)).join('') || '<p class="muted" style="padding:14px;margin:0">No units match this filter.</p>'}</div>
-    </section>`;
-  }).join('');
-  return shell(`${pagehead(null, 'Apparatus', 'Tap a unit to start its checks.')}
-    <p class="finding">${finding}</p>
-    <div style="height:18px"></div>
-    ${adm ? `<p class="banner">Admin mode. Drag the grip to reorder. Edit changes a unit's name and details.</p>` : ''}
-    ${cards}
-    ${stations}`);
-}
-
-function apRow(a, s, adm){
-  return `<div class="row" data-id="${a.id}">
-    ${adm ? '<span class="grip" data-handle aria-label="Drag to reorder">&#8801;</span>' : ''}
-    <span class="dot ${s}" aria-hidden="true"></span>
-    <button class="row-main" data-act="open-ap" data-id="${a.id}"><span class="row-title">${esc(a.name)}</span><span class="row-sub">${esc(a.info)}</span></button>
-    <span class="row-meta ${s}">${STATUS_WORDS[s]}</span>
-    ${adm ? `<button class="edit-btn" data-act="edit-ap" data-id="${a.id}">Edit</button>` : '<span></span>'}
-    <button class="ghost-btn ${s === 'fail' ? 'fail' : ''}" data-act="req" data-id="${a.id}">Report a problem</button>
-  </div>`;
-}
-
 function viewChks(){
   const a = AP(S.apId);
   const adm = isAdminMode();
   const probs = openProblems(a.id);
-  const rows = S.chkOrder.map(id => {
-    const c = CHK_LIST.find(x => x.id === id);
-    const st = chkStatus(a.id, id);
-    return `<div class="row" data-id="${id}">
-      ${adm ? '<span class="grip" data-handle aria-label="Drag to reorder">&#8801;</span>' : ''}
-      <span class="dot ${st.k}" aria-hidden="true"></span>
-      <button class="row-main" data-act="open-chk" data-id="${id}"><span class="row-title">${esc(c.name)}</span><span class="row-sub">${esc(st.label)}</span></button>
-      <span class="row-meta ${st.k === 'fail' ? 'fail' : st.k === 'done' ? 'done' : ''}">${st.k === 'none' ? 'Start' : st.k === 'prog' ? 'Continue' : 'Review'}</span>
-      <span></span><span></span>
-    </div>`;
+  const holder = holderFor(a.id);
+  const list = S.chkOrder.map(id => CHK_LIST.find(x => x.id === id)).filter(Boolean);
+  const rows = list.map((c, i) => {
+    const st = chkStatus(a.id, c.id);
+    const label = st.k === 'none' ? 'Start' : st.k === 'prog' ? 'Continue' : 'Review';
+    return `<article class="unit" data-id="${c.id}">
+      <div class="unit-row">
+        <button class="unit-main" data-act="open-chk" data-id="${c.id}" aria-label="${esc(c.name)}, ${esc(st.label)}">
+          <span class="unit-name">${esc(c.name)}</span>
+          <span class="unit-info">${esc(st.label)}</span>
+          ${HOLDERS[a.id + '|' + c.id] && claimFresh(HOLDERS[a.id + '|' + c.id]) && HOLDERS[a.id + '|' + c.id].by !== live() ? `<span class="unit-who">${esc(HOLDERS[a.id + '|' + c.id].by)} has this one open</span>` : ''}
+        </button>
+        <div class="unit-side"><span class="status ${st.k === 'fail' ? 'fail' : st.k === 'done' ? 'done' : st.k === 'prog' ? 'prog' : ''}">${label}</span><span class="chev" aria-hidden="true">&#8250;</span></div>
+      </div>
+      ${adm ? `<div class="unit-foot"><div class="edit-row">
+          <button data-act="move" data-kind="chk" data-id="${c.id}" data-dir="-1" ${i === 0 ? 'disabled' : ''}>Move up</button>
+          <button data-act="move" data-kind="chk" data-id="${c.id}" data-dir="1" ${i === list.length - 1 ? 'disabled' : ''}>Move down</button>
+        </div></div>` : ''}
+    </article>`;
   }).join('');
-  return shell(`${pagehead(`<button data-act="go" data-screen="aps">Apparatus</button><span>/</span><span>${esc(a.name)}</span>`,
-      a.name, a.info, `<button class="ghost-btn" data-act="req" data-id="${a.id}">Report a problem</button>`)}
+  return `${pagehead(`<button data-act="go" data-screen="aps">Apparatus</button><span>/</span><span>${esc(a.name)}</span>`,
+      a.name, a.info || '', `<button class="btn-second" data-act="req" data-id="${a.id}">Report a problem</button>`)}
+    ${holder ? `<div class="notice"><b>${esc(holder.by)}</b> is checking this unit now. You can both work. Answers are shared as you go, and the newer answer wins for each item.</div>` : ''}
     ${probs.length ? problemsCard(probs, 'Known problems on this unit', 'Still broken or now fixed? Tap one, then open the checklist.') : ''}
-    ${adm ? `<p class="banner">Admin mode. Drag the grip to reorder checklists.</p>` : ''}
-    <section class="station"><div class="list" data-checklists>${rows}</div></section>`);
+    ${adm ? `<div class="notice warn"><b>Layout editing is on.</b> Move the checklists with the buttons on each row.</div>` : ''}
+    <div class="card-list">${rows}</div>`;
 }
 
 function problemsCard(list, title, sub){
-  return `<section class="card problems-card">
-    <div class="card-head"><div><h2>${esc(title)}</h2><div class="muted" style="font-size:13px">${esc(sub)}</div></div><span class="tag red num">${list.length}</span></div>
+  return `<section class="pcard">
+    <div class="pcard-head"><div><h2>${esc(title)}</h2><p>${esc(sub)}</p></div><span class="tag red num">${list.length}</span></div>
     ${list.map(p => `<div class="problem">
-      <div class="problem-top"><span><b style="font-weight:500">${esc(p.label)}</b> <span class="muted">${esc(p.apName)}</span></span><span class="who">${esc(when(p.ts))}</span></div>
+      <div class="problem-top"><span><b style="font-weight:600">${esc(p.label)}</b> <span class="muted">${esc(p.apName)}</span></span><span class="who">${esc(when(p.ts))}</span></div>
       ${p.note ? `<div>${esc(p.note)}</div>` : ''}
       <div class="who">Reported by ${esc(p.by)}${p.kind === 'check' ? ', unable to fix on the spot' : ''}</div>
       <div class="problem-actions">
@@ -807,47 +1044,75 @@ function problemsCard(list, title, sub){
   </section>`;
 }
 
-function itemHTML(i, zid, adm, d){
+function fieldDisplay(d, f){ return d.ans[f] && d.ans[f].v != null ? d.ans[f].v : ''; }
+
+function vehicleHTML(a){
+  const v = getDraft(a.id, VEH);
+  const fuel = fieldDisplay(v, 'fuel'), def = fieldDisplay(v, 'def');
+  const pick = (field, cur) => FUEL_OPTS.map(([val, pct]) =>
+    `<button class="${cur === val ? 'on' : ''}" data-act="veh-pick" data-field="${field}" data-val="${val}" aria-pressed="${cur === val}">${val === 'Full' ? 'Full' : val.replace('1/4','&#188;').replace('1/2','&#189;').replace('3/4','&#190;')}<small>${pct}</small></button>`).join('');
+  return `<section class="panel" aria-label="Vehicle readings for ${esc(a.name)}">
+    <div class="panel-head"><h2>Readings for ${esc(a.name)}</h2><span>Shared by everyone checking this unit today</span></div>
+    <div class="fields">
+      <div><label for="veh-hours">Engine hours</label><input id="veh-hours" data-veh="hours" inputmode="decimal" placeholder="Type the hours" value="${esc(fieldDisplay(v, 'hours'))}"></div>
+      <div><label for="veh-miles">Mileage</label><input id="veh-miles" data-veh="mileage" inputmode="numeric" placeholder="Type the miles" value="${esc(fieldDisplay(v, 'mileage'))}"></div>
+    </div>
+    <div class="picker-label">Fuel level <span>for the record</span></div>
+    <div class="picker" role="group" aria-label="Fuel level">${pick('fuel', fuel)}</div>
+    <div class="picker-label">DEF level <span>for the record</span></div>
+    <div class="picker" role="group" aria-label="DEF level">${pick('def', def)}</div>
+    <div class="fyi">Fuel and DEF are recorded only. A low level does not fail the check.</div>
+  </section>`;
+}
+
+function itemHTML(i, zid, adm, d, photos){
   const an = d.ans[i.id];
+  const v = an && an.v;
+  const abn = v === 'fail';
   const open = S.open[i.id];
-  const fail = an && an.v === 'fail';
-  const needNote = fail && an.fix === 'unable' && !(an.note || '').trim();
-  return `<div class="item ${fail ? 'fail' : ''}" data-id="${i.id}">
+  const photo = photos[i.id];
+  const needNote = abn && an.fix === 'unable' && !(an.note || '').trim();
+  return `<div class="item ${abn ? 'abn' : ''}" data-id="${i.id}">
     <div class="item-top">
-      ${adm ? '<span class="grip" data-handle aria-label="Drag to reorder">&#8801;</span>' : ''}
       <div class="item-name">${esc(i.name)}</div>
-      ${adm ? `<button class="edit-btn" data-act="edit-item" data-item="${i.id}" data-zone="${zid}">Edit</button>` : ''}
       <button class="details-btn" data-act="details" data-item="${i.id}" aria-expanded="${!!open}">${open ? 'Hide details' : 'Details'}</button>
     </div>
+    ${adm ? `<div class="edit-row" style="margin:8px 0 0">
+        <button data-act="move-item" data-zone="${zid}" data-item="${i.id}" data-dir="-1">Move up</button>
+        <button data-act="move-item" data-zone="${zid}" data-item="${i.id}" data-dir="1">Move down</button>
+        <button class="edit" data-act="edit-item" data-zone="${zid}" data-item="${i.id}">Edit</button></div>` : ''}
     ${open ? `<p class="item-desc">${esc(i.desc)}</p>` : ''}
     <div class="seg" role="group" aria-label="${esc(i.name)} result">
-      <button class="pass ${an && an.v === 'pass' ? 'on' : ''}" data-act="ans" data-item="${i.id}" data-val="pass" aria-pressed="${an && an.v === 'pass'}">Pass</button>
-      <button class="fail ${fail ? 'on' : ''}" data-act="ans" data-item="${i.id}" data-val="fail" aria-pressed="${fail}">Fail</button>
+      <button class="norm ${v === 'pass' ? 'on' : ''}" data-act="ans" data-item="${i.id}" data-val="pass" aria-pressed="${v === 'pass'}">Normal</button>
+      <button class="abn ${abn ? 'on' : ''}" data-act="ans" data-item="${i.id}" data-val="fail" aria-pressed="${abn}">Abnormal</button>
     </div>
-    ${fail ? `<div class="fixwhat">
-      <div class="label">What happened to it?</div>
+    ${abn ? `<div class="detail">
+      <label class="q" for="note-${i.id}">What's wrong with this item?</label>
+      <textarea id="note-${i.id}" data-note="${i.id}" placeholder="${an.fix === 'unable' ? 'Why it cannot be fixed now (required)' : 'Describe what you found'}">${esc(an.note || '')}</textarea>
       <div class="fixgrid" role="group" aria-label="Fixed or not">
-        <button class="${an.fix === 'fixed' ? 'on' : ''}" data-act="fix" data-item="${i.id}" data-fix="fixed" aria-pressed="${an.fix === 'fixed'}">Fixed on the spot</button>
+        <button class="fixed ${an.fix === 'fixed' ? 'on' : ''}" data-act="fix" data-item="${i.id}" data-fix="fixed" aria-pressed="${an.fix === 'fixed'}">Fixed on the spot</button>
         <button class="unable ${an.fix === 'unable' ? 'on' : ''}" data-act="fix" data-item="${i.id}" data-fix="unable" aria-pressed="${an.fix === 'unable'}">Unable to fix</button>
       </div>
-      <div class="note-field">
-        <label class="sr" for="note-${i.id}">Note for ${esc(i.name)}</label>
-        <textarea id="note-${i.id}" data-note="${i.id}" placeholder="${an.fix === 'unable' ? 'Why it cannot be fixed now (required)' : 'Note (optional)'}">${esc(an.note || '')}</textarea>
-        ${needNote ? '<p class="note-hint">A reason is needed before you can submit.</p>' : ''}
+      ${needNote ? '<p class="note-hint">A reason is needed before you can submit.</p>' : ''}
+      <div class="photo-row">
+        ${photo ? `<img src="${photo}" alt="Photo for ${esc(i.name)}"><button class="link-btn" data-act="photo-remove" data-item="${i.id}">Remove photo</button>`
+          : `<label class="photo-btn">Add photo<input class="sr" type="file" accept="image/*" capture="environment" data-photo="${i.id}"></label>`}
       </div>
     </div>` : ''}
   </div>`;
 }
 
-function zoneHTML(z, adm, d){
-  return `<section class="card check-card zone-block" data-id="${z.id}" id="z-${z.id}">
-    <div class="check-head">
-      ${adm ? '<span class="grip" data-handle aria-label="Drag to reorder">&#8801;</span>' : ''}
+function zoneHTML(z, adm, d, photos){
+  return `<section class="zone" data-id="${z.id}" id="z-${z.id}">
+    <div class="zone-head">
       <h2>${esc(z.name)}</h2>
-      ${adm ? `<button class="edit-btn" data-act="edit-zone" data-zone="${z.id}">Edit zone</button>` : ''}
+      ${adm ? `<div class="edit-row">
+        <button data-act="move-zone" data-zone="${z.id}" data-dir="-1">Move up</button>
+        <button data-act="move-zone" data-zone="${z.id}" data-dir="1">Move down</button>
+        <button class="edit" data-act="edit-zone" data-zone="${z.id}">Edit zone</button></div>` : ''}
     </div>
-    <div class="item-list" data-zone="${z.id}">${z.items.map(i => itemHTML(i, z.id, adm, d)).join('')}</div>
-    ${adm ? `<button class="add-row" data-act="add-item" data-zone="${z.id}">+ Add check</button>` : ''}
+    <div class="zone-items">${z.items.map(i => itemHTML(i, z.id, adm, d, photos)).join('')}</div>
+    ${adm ? `<button class="zone-add" data-act="add-item" data-zone="${z.id}">+ Add a check to this zone</button>` : ''}
   </section>`;
 }
 
@@ -858,7 +1123,7 @@ function missingFor(apId, chk){
   const out = [];
   zones.forEach(z => z.items.forEach(i => {
     const an = d.ans[i.id];
-    if (!an) out.push({ zid: z.id, iid: i.id, text: `${z.name}: ${i.name}, not answered` });
+    if (!an || !an.v) out.push({ zid: z.id, iid: i.id, text: `${z.name}: ${i.name}, not answered` });
     else if (an.v === 'fail' && !an.fix) out.push({ zid: z.id, iid: i.id, text: `${z.name}: ${i.name}, choose Fixed on the spot or Unable to fix` });
     else if (an.v === 'fail' && an.fix === 'unable' && !(an.note || '').trim()) out.push({ zid: z.id, iid: i.id, text: `${z.name}: ${i.name}, reason needed` });
   }));
@@ -871,45 +1136,50 @@ function viewCheck(){
   const adm = isAdminMode();
   const zones = getZones(a.id, chk.id);
   const d = getDraft(a.id, chk.id);
+  const photos = photosFor(a.id, chk.id);
   const items = zones.flatMap(z => z.items);
-  const answered = items.filter(i => d.ans[i.id]).length;
+  const answered = items.filter(i => d.ans[i.id] && d.ans[i.id].v).length;
   const fails = items.filter(i => d.ans[i.id] && d.ans[i.id].v === 'fail');
   const unable = fails.filter(i => d.ans[i.id].fix === 'unable').length;
   const missing = missingFor(a.id, chk.id);
   const pills = zones.map(z => {
     const hasFail = z.items.some(i => d.ans[i.id] && d.ans[i.id].v === 'fail');
-    const complete = z.items.length && z.items.every(i => d.ans[i.id]);
+    const complete = z.items.length && z.items.every(i => d.ans[i.id] && d.ans[i.id].v);
     return `<a class="${hasFail ? 'fail' : complete ? 'done' : ''}" href="#z-${z.id}">${esc(z.name)}</a>`;
   }).join('');
   const ready = items.length && missing.length === 0;
   const finding = fails.length
-    ? `<b>${fails.length} ${fails.length === 1 ? 'fail' : 'fails'} so far.</b> ${unable ? `${unable} unable to fix and goes to the admins.` : 'All fixed on the spot so far.'}`
-    : (items.length - answered) ? `${items.length - answered} ${items.length - answered === 1 ? 'check' : 'checks'} left to answer.` : 'Every check answered.';
+    ? `<b>${fails.length} abnormal so far.</b> ${unable ? `${unable} unable to fix and goes to the admins.` : 'All fixed on the spot so far.'}`
+    : (items.length - answered) ? `${items.length - answered} ${items.length - answered === 1 ? 'item' : 'items'} left to answer.` : 'Every item answered.';
   const carried = openProblems(a.id).filter(p => p.kind === 'check');
-  return shell(`
+  const holder = HOLDERS[a.id + '|' + chk.id];
+  const holderOn = holder && claimFresh(holder) && holder.by !== live();
+  return `
     ${pagehead(`<button data-act="go" data-screen="aps">Apparatus</button><span>/</span><button data-act="back">${esc(a.name)}</button><span>/</span><span>${esc(chk.name)}</span>`,
       chk.name, `${a.name}, ${answered} of ${items.length} answered`)}
-    <p class="finding">${finding}</p>
-    <div style="height:16px"></div>
+    <p class="syncline" data-sync>${esc(syncText())}</p>
+    <div style="height:12px"></div>
+    ${holderOn ? `<div class="notice"><b>${esc(holder.by)}</b> has this check open too. Answers merge item by item, and the newer answer wins.</div>` : ''}
     ${carried.length ? problemsCard(carried, 'Known problems on this unit', 'Carried from earlier checks. Still broken fills in this check. Now fixed closes it.') : ''}
+    ${vehicleHTML(a)}
+    <p class="finding">${finding}</p>
     <nav class="zjump" aria-label="Zones">${pills}</nav>
-    ${adm ? `<p class="banner">Admin mode. Drag grips to reorder zones and checks. Edit changes names and descriptions.</p>` : ''}
-    <div class="zones">${zones.map(z => zoneHTML(z, adm, d)).join('')}</div>
-    ${adm ? `<button class="btn-second" data-act="add-zone">+ Add zone</button>` : ''}
-    <div class="sticky-bar">
+    ${adm ? `<div class="notice warn"><b>Layout editing is on.</b> Move zones and checks with their buttons. Edit changes names and descriptions.</div>` : ''}
+    <div>${zones.map(z => zoneHTML(z, adm, d, photos)).join('')}</div>
+    ${adm ? `<button class="add-btn" data-act="add-zone">+ Add a zone to this checklist</button>` : ''}
+    <div class="bar"><div class="bar-in">
       <p>${answered} of ${items.length} answered${missing.length && answered === items.length ? `, ${missing.length} to finish` : ''}</p>
       <button class="btn-primary" data-act="submit" aria-disabled="${!ready}">
-        ${ready ? (fails.length ? `Submit with ${fails.length} ${fails.length === 1 ? 'fail' : 'fails'}` : 'Submit checklist') : 'To complete'}
+        ${ready ? (fails.length ? `Submit with ${fails.length} abnormal` : 'Submit checklist') : 'To complete'}
       </button>
-    </div>`);
+    </div></div>`;
 }
 
 function viewProblems(){
-  const adm = isAdminMode();
   const open = S.problems.filter(p => p.status === 'open').sort((x, y) => y.ts - x.ts);
   const done = S.problems.filter(p => p.status !== 'open').sort((x, y) => y.ts - x.ts).slice(0, 15);
   const row = p => `<div class="problem">
-      <div class="problem-top"><span><b style="font-weight:500">${esc(p.label)}</b> <span class="muted">${esc(p.apName)}</span></span>
+      <div class="problem-top"><span><b style="font-weight:600">${esc(p.label)}</b> <span class="muted">${esc(p.apName)}</span></span>
         <span class="tag ${p.kind === 'check' ? 'red' : ''}">${p.kind === 'check' ? 'Unable to fix' : 'Request'}</span></div>
       ${p.note ? `<div>${esc(p.note)}</div>` : ''}
       <div class="who">${esc(p.by)}, ${esc(when(p.ts))}${p.status !== 'open' ? `. ${p.status === 'fixed' ? 'Marked fixed' : 'Closed'} by ${esc(p.closedBy || '')}` : ''}</div>
@@ -919,14 +1189,16 @@ function viewProblems(){
           : `<button class="btn-second" data-act="prob-reopen" data-id="${p.id}">Reopen</button>`}
       </div>
     </div>`;
-  return shell(`${pagehead(null, 'Open problems', `${open.length} open. Items marked unable to fix on a check show here with the reason.`,
+  return `${pagehead(null, 'Open problems', `${open.length} open. Items marked unable to fix on a check show here with the reason.`,
       `<button class="btn-second" data-act="req" data-id="">Report a problem</button>`)}
-    <section class="card problems-card"><div class="card-head"><h2>Open</h2><span class="tag">${open.length}</span></div>
-      ${open.map(row).join('') || '<p class="muted" style="padding:14px;margin:0">Nothing open.</p>'}</section>
-    ${done.length ? `<section class="card problems-card"><div class="card-head"><h2>Recently closed</h2></div>${done.map(row).join('')}</section>` : ''}`);
+    <section class="pcard"><div class="pcard-head"><div><h2>Open</h2></div><span class="tag">${open.length}</span></div>
+      ${open.map(row).join('') || '<p class="muted" style="padding:16px;margin:0">Nothing open.</p>'}</section>
+    ${done.length ? `<section class="pcard"><div class="pcard-head"><div><h2>Recently closed</h2></div></div>${done.map(row).join('')}</section>` : ''}`;
 }
 
 const VIEWS = { aps:viewAps, chks:viewChks, check:viewCheck, problems:viewProblems };
+
+const CHECK_OPTIONS = () => CHK_LIST.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join('');
 
 function sheetHTML(){
   const sh = S.sheet;
@@ -937,7 +1209,7 @@ function sheetHTML(){
     case 'missing': {
       const list = missingFor(S.apId, S.chk);
       title = `${list.length} ${list.length === 1 ? 'thing' : 'things'} to finish`;
-      body = `<p class="muted" style="margin:0">Tap a line to jump to it.</p><ol class="missing" style="padding-left:20px">
+      body = `<p class="muted" style="margin:0">Tap a line to jump to it.</p><ol class="missing">
         ${list.map(m => `<li><button data-act="jump" data-zone="${m.zid}" data-item="${m.iid}">${esc(m.text)}</button></li>`).join('')}</ol>`;
       actions = '<button class="btn-second" data-act="close">Close</button>';
       break;
@@ -952,17 +1224,26 @@ function sheetHTML(){
     case 'request': {
       title = 'Report a problem';
       body = `<label for="rap">Which unit</label><select id="rap"><option value="">General or station</option>
-        ${APP_LIST.map(a => `<option value="${a.id}" ${sh.apId === a.id ? 'selected' : ''}>${esc(AP(a.id).name)}</option>`).join('')}</select>
+        ${ALL_APS().map(a => `<option value="${a.id}" ${sh.apId === a.id ? 'selected' : ''}>${esc(AP(a.id).name)}</option>`).join('')}</select>
         <label for="rtext">What is the problem?</label><textarea id="rtext" placeholder="Example: Brush 51 pump panel light is out."></textarea>`;
       actions = cancel + '<button class="btn-primary" data-act="sheet-save">Send</button>';
       break;
     }
+    case 'add-ap': {
+      title = 'Add a unit';
+      body = `<label for="ename">Unit name</label><input id="ename" placeholder="Example: Medic 50">
+        <label for="einfo">Make, model, year</label><input id="einfo" placeholder="Example: Ford F450, 2024">
+        <label for="est">Station</label><select id="est">${STATIONS.map(s => `<option value="${s.id}" ${sh.st === s.id ? 'selected' : ''}>${esc(s.name)}</option>`).join('')}</select>`;
+      actions = cancel + '<button class="btn-primary" data-act="sheet-save">Add unit</button>';
+      break;
+    }
     case 'edit-ap': {
       const a = AP(sh.id);
+      const isExtra = (S.extraAps || []).some(x => x.id === sh.id);
       title = 'Edit unit';
       body = `<label for="ename">Name</label><input id="ename" value="${esc(a.name)}">
-        <label for="einfo">Make, model, year</label><input id="einfo" value="${esc(a.info)}">`;
-      actions = cancel + '<button class="btn-primary" data-act="sheet-save">Save</button>';
+        <label for="einfo">Make, model, year</label><input id="einfo" value="${esc(a.info || '')}">`;
+      actions = (isExtra ? '<button class="btn-danger" data-act="del-ap" data-id="' + sh.id + '">Remove unit</button>' : '') + cancel + '<button class="btn-primary" data-act="sheet-save">Save</button>';
       break;
     }
     case 'edit-zone': {
@@ -992,16 +1273,17 @@ function sheetHTML(){
 }
 
 /* =========================================================
-   RENDER, DRAG, TOAST
+   RENDER, TOAST
    ========================================================= */
 function render(){
   const y = window.scrollY;
   let html;
   if (!S.user) { S.screen = 'signin'; html = viewSignin(); }
-  else html = (VIEWS[S.screen] || VIEWS.aps)();
+  else html = shell((VIEWS[S.screen] || VIEWS.aps)());
   document.getElementById('app').innerHTML = html;
-  document.getElementById('sheet').innerHTML = sheetHTML();
-  bindSort();
+  document.getElementById('sheet').innerHTML = S.user ? sheetHTML() : '';
+  S.pendingRedraw = false;
+  syncHistory();
   window.scrollTo(0, y);
 }
 
@@ -1010,92 +1292,56 @@ function toast(msg){
   t.textContent = msg;
   t.classList.add('show');
   clearTimeout(toast.t);
-  toast.t = setTimeout(() => t.classList.remove('show'), 2600);
+  toast.t = setTimeout(() => t.classList.remove('show'), 2800);
 }
 
-function sortable(container, itemSel, handleSel, onDone){
-  container.querySelectorAll(':scope > ' + itemSel).forEach(el => {
-    const handle = el.querySelector(handleSel);
-    if (!handle) return;
-    handle.addEventListener('pointerdown', e => {
-      e.preventDefault();
-      e.stopPropagation();
-      const rect = el.getBoundingClientRect();
-      const offX = e.clientX - rect.left, offY = e.clientY - rect.top;
-      const ghost = el.cloneNode(true);
-      Object.assign(ghost.style, {
-        position:'fixed', left: rect.left + 'px', top: rect.top + 'px', width: rect.width + 'px',
-        pointerEvents:'none', zIndex:'100', background:'#fff', boxShadow:'0 8px 20px rgba(0,0,0,.18)', borderRadius:'8px', border:'1px solid #d4d4d4'
-      });
-      document.body.appendChild(ghost);
-      el.classList.add('dragging');
-      const move = ev => {
-        ghost.style.left = (ev.clientX - offX) + 'px';
-        ghost.style.top = (ev.clientY - offY) + 'px';
-        const under = document.elementFromPoint(ev.clientX, ev.clientY);
-        const target = under && under.closest(itemSel);
-        if (target && target !== el && target.parentElement === container){
-          const sibs = [...container.children].filter(c => c.matches(itemSel));
-          if (sibs.indexOf(target) > sibs.indexOf(el)) container.insertBefore(el, target.nextSibling);
-          else container.insertBefore(el, target);
-        }
-      };
-      const up = () => {
-        window.removeEventListener('pointermove', move);
-        window.removeEventListener('pointerup', up);
-        window.removeEventListener('pointercancel', up);
-        ghost.remove();
-        el.classList.remove('dragging');
-        onDone([...container.children].filter(c => c.matches(itemSel)).map(c => c.dataset.id));
-      };
-      window.addEventListener('pointermove', move);
-      window.addEventListener('pointerup', up);
-      window.addEventListener('pointercancel', up);
-    });
-  });
+/* =========================================================
+   LAYOUT EDITING (admin). Buttons, not drag. Every change saves to the shared copy.
+   ========================================================= */
+function moveIn(arr, id, dir){
+  const i = arr.indexOf(id), j = i + dir;
+  if (i < 0 || j < 0 || j >= arr.length) return false;
+  [arr[i], arr[j]] = [arr[j], arr[i]];
+  return true;
 }
-
-function commit(){ save(); render(); }
-
-function bindSort(){
-  if (!isAdminMode()) return;
-  if (S.screen === 'aps'){
-    document.querySelectorAll('.list[data-station]').forEach(g => {
-      sortable(g, '.row', '[data-handle]', ids => { S.stOrder[g.dataset.station] = ids; commit(); });
-    });
-  }
-  if (S.screen === 'chks'){
-    const c = document.querySelector('[data-checklists]');
-    if (c) sortable(c, '.row', '[data-handle]', ids => { S.chkOrder = ids; commit(); });
-  }
-  if (S.screen === 'check'){
-    const zc = document.querySelector('.zones');
-    if (zc) sortable(zc, '.zone-block', '.check-head [data-handle]', ids => {
-      const zs = getZones(S.apId, S.chk);
-      S.zones[zKey()] = ids.map(id => zs.find(z => z.id === id));
-      commit();
-    });
-    document.querySelectorAll('.item-list').forEach(il => {
-      sortable(il, '.item', '[data-handle]', ids => {
-        const zs = cloneZones(getZones(S.apId, S.chk));
-        const z = zs.find(x => x.id === il.dataset.zone);
-        z.items = ids.map(id => z.items.find(i => i.id === id));
-        S.zones[zKey()] = zs;
-        commit();
-      });
-    });
-  }
+function moveAp(id, dir){
+  const a = AP(id);
+  if (!a || !a.st) return;
+  moveIn(S.stOrder[a.st], id, dir);
+}
+function moveItem(zid, iid, dir){
+  const zs = cloneZones(getZones(S.apId, S.chk));
+  const z = zs.find(x => x.id === zid);
+  if (!z) return;
+  const ids = z.items.map(i => i.id);
+  if (!moveIn(ids, iid, dir)) return;
+  z.items = ids.map(id => z.items.find(i => i.id === id));
+  S.zones[zKey()] = zs;
+}
+function moveZone(zid, dir){
+  const zs = cloneZones(getZones(S.apId, S.chk));
+  const idx = zs.findIndex(z => z.id === zid);
+  if (idx < 0) return;
+  const j = idx + dir;
+  if (j < 0 || j >= zs.length) return;
+  [zs[idx], zs[j]] = [zs[j], zs[idx]];
+  S.zones[zKey()] = zs;
 }
 
 /* =========================================================
    CHECK LOGIC
    ========================================================= */
+// An item answer: { v:'pass'|'fail'|null, fix:'fixed'|'unable'|null, note:'', ts, by }. v null is kept so a cleared answer still wins the merge.
 function answer(iid, val){
   const d = getDraft(S.apId, S.chk);
   const cur = d.ans[iid];
-  if (cur && cur.v === val) delete d.ans[iid];
-  else if (val === 'pass') d.ans[iid] = { v:'pass', fix:null, note:'' };
-  else d.ans[iid] = { v:'fail', fix: cur && cur.fix || null, note: cur && cur.note || '' };
+  const ts = Date.now(), by = live();
+  if (cur && cur.v === val) {
+    d.ans[iid] = { v:null, fix:null, note:'', ts, by };
+    if (S.photos[dk(S.apId, S.chk)]) delete S.photos[dk(S.apId, S.chk)][iid];
+  }
+  else if (val === 'pass') d.ans[iid] = { v:'pass', fix:null, note:'', ts, by };
+  else d.ans[iid] = { v:'fail', fix: cur && cur.fix || null, note: cur && cur.note || '', ts, by };
 }
 
 function setFix(iid, fix){
@@ -1103,6 +1349,29 @@ function setFix(iid, fix){
   const cur = d.ans[iid];
   if (!cur || cur.v !== 'fail') return;
   cur.fix = cur.fix === fix ? null : fix;
+  cur.ts = Date.now(); cur.by = live();
+}
+
+function setNote(iid, text){
+  const d = getDraft(S.apId, S.chk);
+  const cur = d.ans[iid];
+  if (!cur) return;
+  cur.note = text; cur.ts = Date.now(); cur.by = live();
+}
+
+function setVehicle(field, val){
+  const d = getDraft(S.apId, VEH);
+  const cur = d.ans[field];
+  const next = (cur && cur.v === val) ? null : val;
+  d.ans[field] = { v: next, ts: Date.now(), by: live() };
+  savePersist();
+  queuePush(S.apId, VEH);
+}
+function setVehicleText(field, text){
+  const d = getDraft(S.apId, VEH);
+  d.ans[field] = { v: text.trim() ? text.trim().slice(0, 40) : null, ts: Date.now(), by: live() };
+  savePersist();
+  queuePush(S.apId, VEH);
 }
 
 // Known problems: "Still broken" marks the matching item as a fail that is unable to fix,
@@ -1111,12 +1380,12 @@ function problemBroken(id){
   const p = S.problems.find(x => x.id === id);
   if (!p) return;
   p.ts = Date.now();
-  p.by = S.user.name;
+  p.by = live();
   const zones = getZones(p.apId, p.chk || CHK_LIST[0].id);
   const hit = zones.flatMap(z => z.items).find(i => i.name === p.label);
   if (hit && S.apId === p.apId && S.chk) {
     const d = getDraft(p.apId, S.chk);
-    d.ans[hit.id] = { v:'fail', fix:'unable', note: p.note || '' };
+    d.ans[hit.id] = { v:'fail', fix:'unable', note: p.note || '', ts: Date.now(), by: live() };
     toast(`${p.label} marked still broken on this check.`);
   } else {
     toast('Still broken noted. It stays on the list.');
@@ -1127,7 +1396,7 @@ function problemClose(id, status){
   const p = S.problems.find(x => x.id === id);
   if (!p) return;
   p.status = status;
-  p.closedBy = S.user.name;
+  p.closedBy = live();
   p.closedAt = Date.now();
   toast(status === 'fixed' ? 'Marked fixed.' : 'Closed.');
 }
@@ -1137,8 +1406,9 @@ function buildReport(apId, chk, by, dateStr){
   const chkName = CHK_LIST.find(c => c.id === chk).name;
   const zones = getZones(apId, chk);
   const d = getDraft(apId, chk);
+  const v = getDraft(apId, VEH);
   const items = zones.flatMap(z => z.items.map(i => ({ i, z })));
-  const fails = items.filter(x => d.ans[x.i.id].v === 'fail');
+  const fails = items.filter(x => d.ans[x.i.id] && d.ans[x.i.id].v === 'fail');
   const unable = fails.filter(x => d.ans[x.i.id].fix === 'unable');
   const fixed = fails.filter(x => d.ans[x.i.id].fix === 'fixed');
   const passed = items.length - fails.length;
@@ -1146,9 +1416,14 @@ function buildReport(apId, chk, by, dateStr){
   lines.push(`${a.name}: ${chkName}`);
   lines.push(`Checked by: ${by}`);
   lines.push(`Date: ${dateStr}`);
+  const vv = k => (v.ans[k] && v.ans[k].v) || 'not entered';
+  lines.push(`Engine hours: ${vv('hours')}`);
+  lines.push(`Mileage: ${vv('mileage')}`);
+  lines.push(`Fuel (for the record): ${vv('fuel')}`);
+  lines.push(`DEF (for the record): ${vv('def')}`);
   lines.push('');
-  lines.push(fails.length ? `${fails.length} ${fails.length === 1 ? 'FLAG' : 'FLAGS'}` : 'ALL CLEAR');
-  lines.push(`${passed} of ${items.length} passed`);
+  lines.push(fails.length ? `${fails.length} ${fails.length === 1 ? 'ABNORMAL' : 'ABNORMAL ITEMS'}` : 'ALL NORMAL');
+  lines.push(`${passed} of ${items.length} normal`);
   if (unable.length){
     lines.push('');
     lines.push('UNABLE TO FIX, IMMEDIATE ADMIN REVIEW');
@@ -1156,14 +1431,16 @@ function buildReport(apId, chk, by, dateStr){
   }
   if (fails.length){
     lines.push('');
-    lines.push('FLAGS');
+    lines.push('ABNORMAL ITEMS');
     fails.forEach(x => {
       const an = d.ans[x.i.id];
       const how = an.fix === 'fixed' ? 'Fixed on the spot' : an.fix === 'unable' ? 'Unable to fix' : 'Not decided';
       lines.push(`  ${x.z.name}: ${x.i.name}. ${how}${an.note ? '. Note: ' + an.note : ''}`);
     });
   }
-  return { text: lines.join('\n'), headline: fails.length ? `${fails.length} ${fails.length === 1 ? 'flag' : 'flags'}` : 'All clear', unable, fixed, fails, passed, total: items.length };
+  const photoCount = Object.keys(photosFor(apId, chk)).length;
+  if (photoCount) { lines.push(''); lines.push(`Photos taken on this phone: ${photoCount} (not attached to this email)`); }
+  return { text: lines.join('\n'), headline: fails.length ? `${fails.length} abnormal` : 'All normal', unable, fixed, fails, passed, total: items.length };
 }
 
 async function sendEmail(subject, text){
@@ -1179,33 +1456,38 @@ async function sendEmail(subject, text){
 function submitCheck(){
   const a = AP(S.apId);
   const d = getDraft(S.apId, S.chk);
-  if (missingFor(S.apId, S.chk).length) { S.sheet = { type:'missing' }; return; }
+  if (missingFor(S.apId, S.chk).length) { S.sheet = { type:'missing' }; render(); return; }
   const dateStr = new Date().toLocaleString();
-  const rep = buildReport(S.apId, S.chk, S.user.name, dateStr);
+  const rep = buildReport(S.apId, S.chk, live(), dateStr);
   const chkName = CHK_LIST.find(c => c.id === S.chk).name;
   const fails = rep.fails.map(x => ({
     zone: x.z.name, item: x.i.name, fix: d.ans[x.i.id].fix, note: d.ans[x.i.id].note || ''
   }));
-  S.history.unshift({ id: uid(), day: todayKey(), ts: Date.now(), apId: a.id, apName: a.name, chk: S.chk, chkName, by: S.user.name, fails });
+  S.history.unshift({ id: uid(), day: todayKey(), ts: Date.now(), apId: a.id, apName: a.name, chk: S.chk, chkName, by: live(), fails });
   // Unable to fix goes to the open problems list. Repeats update the same record.
   fails.filter(f => f.fix === 'unable').forEach(f => {
     const existing = S.problems.find(p => p.status === 'open' && p.kind === 'check' && p.apId === a.id && p.label === f.item);
-    if (existing) { existing.note = f.note; existing.ts = Date.now(); existing.by = S.user.name; existing.chk = S.chk; }
-    else S.problems.unshift({ id: uid(), kind:'check', apId: a.id, apName: a.name, chk: S.chk, key: f.zone + '|' + f.item, label: f.item, note: f.note, by: S.user.name, ts: Date.now(), status:'open' });
+    if (existing) { existing.note = f.note; existing.ts = Date.now(); existing.by = live(); existing.chk = S.chk; }
+    else S.problems.unshift({ id: uid(), kind:'check', apId: a.id, apName: a.name, chk: S.chk, key: f.zone + '|' + f.item, label: f.item, note: f.note, by: live(), ts: Date.now(), status:'open' });
   });
   // Items answered Fixed on the spot close any matching open problem.
   fails.filter(f => f.fix === 'fixed').forEach(f => {
     S.problems.filter(p => p.status === 'open' && p.kind === 'check' && p.apId === a.id && p.label === f.item)
-      .forEach(p => { p.status = 'fixed'; p.closedBy = S.user.name; p.closedAt = Date.now(); });
+      .forEach(p => { p.status = 'fixed'; p.closedBy = live(); p.closedAt = Date.now(); });
   });
-  delete S.drafts[dk(S.apId, S.chk)];
+  const key = dk(S.apId, S.chk);
+  deleteShared(S.apId, S.chk);
+  delete S.drafts[key];
+  if (S.photos[key]) delete S.photos[key];
+  delete HOLDERS[a.id + '|' + S.chk];
   S.lastReport = { headline: rep.headline, text: rep.text };
   S.sheet = { type:'report' };
   S.screen = 'chks';
+  savePersist(); savePhotos();
   sendEmail(`${a.name} ${chkName}: ${rep.headline}`, rep.text).then(ok => {
     if (ok) toast('Report emailed.');
   });
-  toast(rep.fails && fails.length ? 'Submitted. Supervisor notified.' : 'Submitted. All checks passed.');
+  toast(fails.length ? 'Submitted. Supervisor notified.' : 'Submitted. All normal.');
 }
 
 function sheetSave(){
@@ -1217,14 +1499,30 @@ function sheetSave(){
       if (!text) return;
       const ap = v('rap');
       const a = ap ? AP(ap) : null;
-      S.problems.unshift({ id: uid(), kind:'request', apId: a ? a.id : null, apName: a ? a.name : 'General', chk: null, key: null, label: 'Request', note: text, by: S.user.name, ts: Date.now(), status:'open' });
+      S.problems.unshift({ id: uid(), kind:'request', apId: a ? a.id : null, apName: a ? a.name : 'General', chk: null, key: null, label: 'Request', note: text, by: live(), ts: Date.now(), status:'open' });
       S.sheet = null;
       toast('Sent to the admins.');
       break;
     }
+    case 'add-ap': {
+      const name = v('ename');
+      if (!name) { toast('Give the unit a name first.'); return; }
+      const st = v('est') || sh.st;
+      const id = 'x' + uid();
+      S.extraAps.push({ id, name, info: v('einfo'), st });
+      S.stOrder[st] = [...(S.stOrder[st] || []), id];
+      S.sheet = null;
+      toast(`${name} added.`);
+      break;
+    }
     case 'edit-ap': {
       const base = AP(sh.id);
-      S.apEdits[sh.id] = { name: v('ename') || base.name, info: v('einfo') || base.info };
+      const name = v('ename') || base.name, info = v('einfo');
+      if (S.extraAps.some(x => x.id === sh.id)) {
+        S.extraAps = S.extraAps.map(x => x.id === sh.id ? { ...x, name, info } : x);
+      } else {
+        S.apEdits[sh.id] = { name, info };
+      }
       S.sheet = null;
       break;
     }
@@ -1296,8 +1594,9 @@ function msalUser(acc){
   const admin = CONFIG.msal.adminEmails.map(x => x.toLowerCase()).includes(email);
   const person = ROSTER.find(p => p.email && p.email.toLowerCase() === email);
   signIn({ id: 'ms-' + email, name: person ? person.name : (acc.name || email), email, admin, ms: true });
-  save();
+  savePersist();
   render();
+  startPulls();
 }
 
 async function msalHandleRedirect(){
@@ -1322,27 +1621,42 @@ document.addEventListener('submit', e => {
   const name = ((document.getElementById('vname') || {}).value || '').trim();
   if (!name){ S.volErr = 'Enter your name to continue.'; render(); return; }
   signIn({ id: 'vol-' + uid(), name, admin: false, ms: false });
-  save();
+  savePersist();
   render();
+  startPulls();
 });
 
 document.addEventListener('click', e => {
   const el = e.target.closest('[data-act]');
   if (!el) return;
+  if (el.disabled) return;
   const act = el.dataset.act, id = el.dataset.id;
   switch (act){
     case 'ms-open': msalSignIn(); return;
     case 'sheet-save': sheetSave(); break;
     case 'close': S.sheet = null; break;
-    case 'signout': S.user = null; S.adminMode = false; S.screen = 'signin'; S.sheet = null; break;
+    case 'signout': S.user = null; S.adminMode = false; S.screen = 'signin'; S.sheet = null; clearInterval(pullTimer); break;
     case 'go': S.screen = el.dataset.screen; break;
     case 'back': S.sheet = null; S.screen = { check:'chks', chks:'aps' }[S.screen] || 'aps'; break;
     case 'filter': S.filter = id; break;
     case 'open-ap': S.apId = id; S.screen = 'chks'; break;
-    case 'open-chk': S.chk = id; S.screen = 'check'; break;
+    case 'open-chk': {
+      S.chk = id; S.screen = 'check';
+      // Tell the crew this check is open now (claim), and pull the latest shared answers.
+      queuePush(S.apId, id);
+      pullDay();
+      break;
+    }
     case 'ans': answer(el.dataset.item, el.dataset.val); break;
     case 'fix': setFix(el.dataset.item, el.dataset.fix); break;
+    case 'veh-pick': setVehicle(el.dataset.field, el.dataset.val); return render();
     case 'details': S.open[el.dataset.item] = !S.open[el.dataset.item]; break;
+    case 'photo-remove': {
+      const key = dk(S.apId, S.chk);
+      if (S.photos[key]) delete S.photos[key][el.dataset.item];
+      savePhotos();
+      break;
+    }
     case 'submit': submitCheck(); break;
     case 'jump': {
       S.sheet = null;
@@ -1361,7 +1675,22 @@ document.addEventListener('click', e => {
     case 'prob-fixed': problemClose(id, 'fixed'); break;
     case 'prob-reopen': { const p = S.problems.find(x => x.id === id); if (p) { p.status = 'open'; } break; }
     case 'toggle-admin': if (S.user && S.user.admin) S.adminMode = !S.adminMode; break;
+    case 'move': {
+      if (el.dataset.kind === 'ap') moveAp(id, Number(el.dataset.dir));
+      else if (el.dataset.kind === 'chk') moveIn(S.chkOrder, id, Number(el.dataset.dir));
+      break;
+    }
+    case 'move-zone': moveZone(el.dataset.zone, Number(el.dataset.dir)); break;
+    case 'move-item': moveItem(el.dataset.zone, el.dataset.item, Number(el.dataset.dir)); break;
     case 'edit-ap': S.sheet = { type:'edit-ap', id }; break;
+    case 'add-ap': S.sheet = { type:'add-ap', st: el.dataset.station }; break;
+    case 'del-ap': {
+      if (!confirm('Remove this unit from the list? Its saved checks stay on this phone.')) return;
+      S.extraAps = S.extraAps.filter(x => x.id !== id);
+      Object.keys(S.stOrder).forEach(st => { S.stOrder[st] = S.stOrder[st].filter(x => x !== id); });
+      S.sheet = null;
+      break;
+    }
     case 'edit-zone': S.sheet = { type:'edit-zone', zid: el.dataset.zone }; break;
     case 'edit-item': S.sheet = { type:'edit-item', zid: el.dataset.zone, iid: el.dataset.item }; break;
     case 'add-item': {
@@ -1392,7 +1721,7 @@ document.addEventListener('click', e => {
     }
     case 'req': S.sheet = { type:'request', apId: id || '' }; break;
     case 'export': {
-      const data = { exportedAt: new Date().toISOString(), apEdits: S.apEdits, stOrder: S.stOrder, chkOrder: S.chkOrder, zones: S.zones };
+      const data = { exportedAt: new Date().toISOString(), apEdits: S.apEdits, extraAps: S.extraAps, stOrder: S.stOrder, chkOrder: S.chkOrder, zones: S.zones };
       const blob = new Blob([JSON.stringify(data, null, 2)], { type:'application/json' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
@@ -1404,6 +1733,7 @@ document.addEventListener('click', e => {
     case 'reset-yes': {
       const u = S.user, am = S.adminMode;
       localStorage.removeItem(CONFIG.storageKey);
+      localStorage.removeItem(CONFIG.storageKey + '_photos');
       Object.assign(S, fresh());
       S.user = u; S.adminMode = am; S.screen = 'aps';
       break;
@@ -1415,23 +1745,55 @@ document.addEventListener('click', e => {
 });
 
 document.addEventListener('input', e => {
-  const id = e.target.dataset && e.target.dataset.note;
-  if (!id) return;
-  const d = getDraft(S.apId, S.chk);
-  if (d.ans[id]) d.ans[id].note = e.target.value;
-  save();
+  const t = e.target;
+  if (t.dataset && t.dataset.note) {
+    setNote(t.dataset.note, t.value);
+    savePersist();
+    queuePush(S.apId, S.chk);
+    return;
+  }
+  if (t.dataset && t.dataset.veh) {
+    setVehicleText(t.dataset.veh, t.value);
+    return;
+  }
 });
 
-// Keep the one-line hint and submit state current while a note is typed.
+// Keep the hint and submit state current when a note is finished.
 document.addEventListener('change', e => {
-  if (e.target.dataset && e.target.dataset.note) render();
+  const t = e.target;
+  if (t.dataset && t.dataset.note) { setTimeout(render, 0); return; }
+  if (t.dataset && t.dataset.photo) { addPhoto(t.dataset.photo, t.files && t.files[0]); }
 });
+
+// Photos are shrunk on this phone and kept on this phone only.
+function addPhoto(iid, file){
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    const img = new Image();
+    img.onload = () => {
+      const max = 900, scale = Math.min(1, max / Math.max(img.width, img.height));
+      const c = document.createElement('canvas');
+      c.width = Math.round(img.width * scale); c.height = Math.round(img.height * scale);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      const key = dk(S.apId, S.chk);
+      S.photos[key] = S.photos[key] || {};
+      S.photos[key][iid] = c.toDataURL('image/jpeg', 0.7);
+      savePhotos();
+      render();
+    };
+    img.src = reader.result;
+  };
+  reader.readAsDataURL(file);
+}
 
 window.addEventListener('load', async () => {
   await msalHandleRedirect();
   await loadSharedLayout();
   render();
+  if (S.user) startPulls();
 });
+document.addEventListener('visibilitychange', () => { if (!document.hidden && S.user) pullDay(); });
 render();
 </script>
 </body>

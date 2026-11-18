@@ -4,7 +4,7 @@ Start here if you're picking this up in a new Claude session. This file covers w
 
 Repo: https://github.com/emaildougb/FD13-apparatus-checker
 Live (once DNS is verified): https://apparatus.fd13.org/
-Version: 1.3.2 (2026-11-18)
+Version: 1.4.0 (2026-11-18)
 
 ## Who does what
 
@@ -18,16 +18,35 @@ Admin rights come from the Microsoft account, not from anything typed in the app
 
 ## What the app does
 
-- Daily apparatus check, Pass or Fail per item.
-- A Fail asks "Fixed on the spot" or "Unable to fix." Unable to fix needs a reason before submit.
+- Daily apparatus check. Each item is Normal or Abnormal.
+- An Abnormal item asks "What's wrong with this item?" with "Fixed on the spot" or "Unable to fix," plus Add photo. Unable to fix needs a reason before submit.
+- Engine hours, mileage, fuel and DEF are per unit per day, shared by the crew. Fuel and DEF are for the record only.
+- Autosave on each phone, and a shared copy per check through the Worker. Two phones on one check see who has it and merge answers item by item.
+- Back button steps back through the app.
 - Unresolved problems carry into later checks, marked "Still broken" or "Now fixed."
 - Report headline shows "N flags" or "All clear," then UNABLE TO FIX, an IMMEDIATE ADMIN REVIEW block, then FLAGS with decisions.
 - Version and date show on the sign-in screen and in the sidebar footer.
-- Red theme (fire engine red, #CE2029). No pink anywhere.
+- Red theme: FD13 Hub oxblood (#7A0A0A). No pink anywhere.
 
-Admins can drag to reorder, edit names and details, add and delete checks, and download the data file.
+Admins turn on Edit layout, then use Move up, Move down and Edit on each row. They can add units, zones and checks, edit names and details, and download the data file.
 
-The fix logic was carried over from the NCEMS equipment checker. Not carried over yet: haptics, auto update, "Just looking" mode, live sharing, the 75% send rule and 11 AM hold, and photos.
+The fix logic was carried over from the NCEMS equipment checker. Not carried over yet: haptics, auto update, "Just looking" mode, rig claim and release from the fleet screens, the 75% send rule and 11 AM hold. Photos stay on the phone that took them and are not emailed or shared.
+
+## 1.4.0 changes and the Worker update
+
+Version 1.4.0 needs Worker fd13-apparatus version 1.1, which adds the shared check copies (/progress) and keeps units added by admins (extraAps in /state). The same D1 database and variables are used. No new variables, no new tables.
+
+Until the Worker is updated, the app works on each phone, and the check screen says the shared copy is not reachable. Units added by admins will not sync to other phones until the Worker is updated.
+
+Worker deploy, step by step:
+1. Open the Cloudflare dashboard in Chrome and sign in with the North Country EMS account (account ID 91e05438d2d9b5cb2137a612364b37e8).
+2. Go to Workers & Pages and open fd13-apparatus.
+3. Click Edit code. Click inside the editor, press Ctrl+A to select all, and press Delete.
+4. Open fd13-apparatus-worker.js (in the 1.4.0 zip folder) in Notepad, press Ctrl+A, press Ctrl+C, then click inside the Cloudflare editor and press Ctrl+V.
+5. Click Deploy. Open https://fd13-apparatus.d-boyce.workers.dev/health in a new tab. It should say "version": "1.1".
+6. Open https://fd13-apparatus.d-boyce.workers.dev/progress?day=TODAY (replace TODAY with today's date, for example 2026-11-18). It should show {"day":...,"docs":{}} or the checks in progress.
+
+Shared check copies older than three days are removed automatically on the next save.
 
 ## Files
 
@@ -35,6 +54,7 @@ The fix logic was carried over from the NCEMS equipment checker. Not carried ove
 - `CNAME`: `apparatus.fd13.org`.
 - `logo.png`: FD13 logo.
 - `msal-browser.min.js`: Microsoft sign-in library, hosted with the app (MSAL 2.38.3).
+- `fd13-apparatus-worker.js`: the shared Worker code, version 1.1. Deployed separately (see 1.4.0 changes below). Not uploaded to GitHub.
 - `README.md`: setup and version history.
 - `HANDOFF.md`: this file.
 
@@ -42,7 +62,7 @@ The fix logic was carried over from the NCEMS equipment checker. Not carried ove
 
 ```js
 const CONFIG = {
-  version: '1.3.2',
+  version: '1.4.0',
   versionDate: '2026-11-18',
   worker: 'https://fd13-apparatus.d-boyce.workers.dev',
   seedVersion: '2026-11-17-mike',
