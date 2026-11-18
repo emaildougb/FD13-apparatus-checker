@@ -96,13 +96,11 @@ How SEED is applied: a device that has no saved data uses SEED. A device whose s
 
 ## Open content items (waiting on Mike)
 
-Questions sent to Mike by email on 2026-11-17. His answers are not yet in the app:
+Open items for Mike (questions sent 2026-11-17). Mike is the app admin, so he makes content and layout changes himself in admin mode, or emails Doug any extra changes for Doug to make:
 
-- "General Cab Visual Inspection" on eng51 pre shift ends mid-sentence at "ERG B." Mike to confirm the full text.
-- Spelling: "presnt" (present), "peddle" (pedal), "drivers preference" (driver's preference). Mike to confirm whether Doug should fix these or Mike will.
-- Monthly and scba checklists: Mike to send the content, or `fd13-all-checklists.json`.
-- Whether any apparatus besides eng51 needs his checklist now.
-- Any layout changes he wants.
+- Monthly and SCBA checklists: to be added at a later date.
+- Which checklist (if any) each apparatus other than Engine 51 needs before it goes into the app.
+- Any layout changes he wants (he can make these in admin mode, or email them to Doug).
 
 ## How data is kept today
 
@@ -167,3 +165,10 @@ Build notes for the next session:
 - Doug prefers plain, direct writing, no em dashes, and copy-paste text in code blocks.
 - Deliver app files as one zip, named for the repo and version, per his other projects.
 - When something changes (a version, an admin, the seed layout), update this file and the README, and give them back to Doug.
+
+## 1.4.1 change
+
+- Adds a new-version notice. When the app is open and the version served at apparatus.fd13.org is newer than the one running, a bar across the top says a new version is ready and offers Reset and update. Reset reloads the page. Saved drafts, history and layout are kept on the phone.
+- The app checks on open, every five minutes, and when the phone comes back to the app.
+- Worker is unchanged (still version 1.1). No Worker deploy needed for this release.
+- To release a future version, bump CONFIG.version in index.html. The notice on older copies appears on their next check.
