@@ -248,7 +248,7 @@ h3{font-size:17px;font-weight:600;margin:0 0 8px}
    for a normal rollout.
    ========================================================= */
 const CONFIG = {
-  version: '1.6.4',
+  version: '1.6.5',
   versionDate: '2026-11-19',
   // Shared layout Worker (North Country Cloudflare, workers.dev). Reads are public; admin writes need a Microsoft ID token.
   worker: 'https://fd13-apparatus.d-boyce.workers.dev',
@@ -555,9 +555,11 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt
 const uid = () => Math.random().toString(36).slice(2, 10);
 // Local calendar day as YYYY-MM-DD. Used for today's checks and for the shared copies.
 const localDay = (d = new Date()) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-const todayKey = () => localDay();
-const dk = (apId, chk) => `${localDay()}|${apId}|${chk}`;
-const serverKey = (apId, chk) => `p:${localDay()}|${apId}|${chk}`;
+// 1.6.5: the check day rolls over at 07:30 (same as NCEMS). Before 07:30 the day is still yesterday.
+const dutyDay = (d = new Date()) => localDay(new Date(d.getTime() - 7.5 * 3600 * 1000));
+const todayKey = () => dutyDay();
+const dk = (apId, chk) => `${dutyDay()}|${apId}|${chk}`;
+const serverKey = (apId, chk) => `p:${dutyDay()}|${apId}|${chk}`;
 const when = ts => new Date(ts).toLocaleString([], { month:'short', day:'numeric', hour:'numeric', minute:'2-digit' });
 const clock = ts => new Date(ts).toLocaleTimeString([], { hour:'numeric', minute:'2-digit' });
 const roleOf = u => !u ? '' : !u.ms ? 'Volunteer, no login' : u.admin ? 'Admin, Microsoft login' : 'Crew, Microsoft login';
@@ -752,7 +754,7 @@ function applyDoc(key, doc, fromPush){
 async function pullDay(){
   if (!CONFIG.worker || !S.user) return;
   try {
-    const res = await fetch(CONFIG.worker + '/progress?day=' + localDay(), { cache: 'no-store' });
+    const res = await fetch(CONFIG.worker + '/progress?day=' + dutyDay(), { cache: 'no-store' });
     if (!res.ok) throw new Error('status ' + res.status);
     const body = await res.json();
     setSyncState(true);

@@ -2,7 +2,7 @@
 
 Daily apparatus check app for Clark County Fire District 13.
 
-**Version 1.6.4 (2026-11-19)**
+**Version 1.6.5 (2026-11-19)**
 
 ## Links
 
@@ -11,6 +11,10 @@ Daily apparatus check app for Clark County Fire District 13.
 - Upload: [https://github.com/emaildougb/FD13-apparatus-checker/upload/main](https://github.com/emaildougb/FD13-apparatus-checker/upload/main)
 
 ## Changelog
+
+### 1.6.5 (2026-11-19)
+
+- The check day rolls over at 07:30 instead of midnight (same as NCEMS). Before 07:30 the day is still yesterday. The FD13 Worker is version 1.3.1 with the same change.
 
 ### 1.6.4 (2026-11-19)
 

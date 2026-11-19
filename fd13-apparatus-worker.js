@@ -1,6 +1,7 @@
 /* =========================================================
    FD13 Apparatus Check, shared state Worker (fd13-apparatus)
    North Country EMS Cloudflare account. D1 database: fd13-apparatus-db.
+   Version 1.3.1 (2026-11-19). The check day rolls over at 07:30 Pacific (was midnight).
    Version 1.3 (2026-11-18). Finished checks are saved here (POST /check) and open problems are kept
      here (from checks, plus POST /problem when someone marks one fixed). New read routes for the NCEMS Hub,
      FD13 side only: GET /fire/today and GET /fire/problems. CLIENT_ID can now hold more than one app.
@@ -42,7 +43,7 @@
      PHOTOS      R2 bucket fd13-check-photos
    ========================================================= */
 
-const VERSION = '1.3';
+const VERSION = '1.3.1';
 const SERVICE = 'fd13-apparatus';
 const MAX_BODY = 2 * 1024 * 1024;   // 2 MB
 const LOG_KEEP = 500;               // keep the newest 500 log entries
@@ -411,8 +412,9 @@ const CHECK_KEEP_DAYS = 400;
 
 const str = (v, max) => (typeof v === 'string' ? v : v == null ? '' : String(v)).slice(0, max);
 
+// 1.3.1: the check day rolls over at 07:30 Pacific (same as NCEMS). Before 07:30 the day is still yesterday.
 function pacificDay(now = Date.now()) {
-  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Los_Angeles', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(now));
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Los_Angeles', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(now - 7.5 * 3600 * 1000));
 }
 
 function cleanPhotoUrl(v) {
