@@ -180,12 +180,9 @@ Build notes for the next session:
 - Still to do before the email sends: add the FD13 EmailJS public key, service ID, template ID and recipients to CONFIG.emailjs (blank in 1.5.0). The North Country apps use the same EmailJS account. Doug to paste the FD13 values, or add them to the shared list the way the other settings are saved.
 - Test plan: send the first report to Doug only, then switch the recipients to m.wagner and c.andrus.
 
+## 1.6.0 change: required checks and shift rotation
 
+- SCHED block in index.html: daily, weekly and shift rigs. The shift anchor is 18 November 2026 (A), then B on the 19th, C on the 20th, repeating daily.
+- Completion counts a submitted Pre Shift check for that unit (in the history list). Weekly runs Monday to Sunday.
+- Not yet done: the Hub Wall and Desk need the same daily and weekly counts (separate build on the Hub side).
 
-## 11/18/2026: 1.6.0 and Worker 1.3 (checks reach the NCEMS Hub)
-
-- Worker fd13-apparatus 1.3 is live (deployed by Claude through Doug's Chrome, version 8ed2a7ad, code sha256 starts 6201394f). Routes: /health, /state, /log, /revert, /progress, /photos, /photo/, plus new /check, /problem, /fire/today, /fire/problems. Keep every one of them on any later paste.
-- Variables now: CLIENT_ID `06fbbe41-0b42-4b07-a071-cb4ffa5092c9,54eb93f5-05e0-42ca-a49d-f4df05c3331c` (this app first, then the NCEMS Hub; CG Staff f758d1fe goes on the end later). ORIGINS `https://apparatus.fd13.org,https://emaildougb.github.io,https://hub.northcountryems.org`. ADMINS, TENANT_ID, DB and PHOTOS unchanged.
-- The app (1.6.0) sends each finished check and each problem status change to the Worker through an outbox on the phone. A 4xx answer drops that item; 404, 429 and 5xx keep it for a retry.
-- Open problems on the Worker are keyed by unit and item name. Unable to fix opens one, Fixed on the spot closes it, the problems screen buttons close, reopen or update it.
-- Still open: Requests to the admins only save on the sending phone; EmailJS is still blank so no report email goes out; which rigs count as due each day.
