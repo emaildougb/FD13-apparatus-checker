@@ -2,7 +2,7 @@
 
 Daily apparatus check app for Clark County Fire District 13.
 
-**Version 1.6.2 (2026-11-19)**
+**Version 1.6.3 (2026-11-19)**
 
 ## Links
 
@@ -11,6 +11,12 @@ Daily apparatus check app for Clark County Fire District 13.
 - Upload: [https://github.com/emaildougb/FD13-apparatus-checker/upload/main](https://github.com/emaildougb/FD13-apparatus-checker/upload/main)
 
 ## Changelog
+
+### 1.6.3 (2026-11-19)
+
+- Finished checks are now sent to the FD13 Worker (POST /check), so the NCEMS Hub and CG Staff show them. A check that can't be sent (no signal) is kept on the phone and retried every 15 seconds.
+- Photos on a check go with the check to the Worker.
+- Submit returns to the unit list instead of the report box. The message says "Report not emailed yet" until EmailJS is set up.
 
 ### 1.6.2 (2026-11-19)
 - Engine 51 and Squad 51 are marked Mandatory daily on their cards.

@@ -248,8 +248,8 @@ h3{font-size:17px;font-weight:600;margin:0 0 8px}
    for a normal rollout.
    ========================================================= */
 const CONFIG = {
-  version: '1.6.2',
-  versionDate: '2026-11-18',
+  version: '1.6.3',
+  versionDate: '2026-11-19',
   // Shared layout Worker (North Country Cloudflare, workers.dev). Reads are public; admin writes need a Microsoft ID token.
   worker: 'https://fd13-apparatus.d-boyce.workers.dev',
   // Bump seedVersion whenever the built-in layout (SEED) changes. Devices re-apply SEED once per bump.
@@ -767,7 +767,7 @@ async function deleteShared(apId, chk){
 }
 function startPulls(){
   clearInterval(pullTimer);
-  pullTimer = setInterval(() => { if (S.user && !document.hidden) pullDay(); }, 15000);
+  pullTimer = setInterval(() => { if (S.user && !document.hidden) { pullDay(); flushUnsent(); } }, 15000);
   pullDay();
 }
 // Redraw only when nobody is typing, so a note never loses focus while the crew writes.
@@ -1565,10 +1565,11 @@ async function submitCheck(){
   const dateStr = new Date().toLocaleString();
   const rep = buildReport(S.apId, S.chk, live(), dateStr);
   const chkName = CHK_LIST.find(c => c.id === S.chk).name;
+  const photoMap = S.photoLinks[dk(S.apId, S.chk)] || {};
   const fails = rep.fails.map(x => ({
-    zone: x.z.name, item: x.i.name, fix: d.ans[x.i.id].fix, note: d.ans[x.i.id].note || ''
+    zone: x.z.name, item: x.i.name, fix: d.ans[x.i.id].fix, note: d.ans[x.i.id].note || '', photo: photoMap[x.i.id] || ''
   }));
-  S.history.unshift({ id: uid(), day: todayKey(), ts: Date.now(), apId: a.id, apName: a.name, chk: S.chk, chkName, by: live(), fails });
+  S.history.unshift({ id: uid(), day: todayKey(), ts: Date.now(), apId: a.id, apName: a.name, chk: S.chk, chkName, by: live(), total: rep.total, fails, sent: false });
   // Unable to fix goes to the open problems list. Repeats update the same record.
   fails.filter(f => f.fix === 'unable').forEach(f => {
     const existing = S.problems.find(p => p.status === 'open' && p.kind === 'check' && p.apId === a.id && p.label === f.item);
@@ -1587,13 +1588,31 @@ async function submitCheck(){
   if (S.photoLinks[key]) delete S.photoLinks[key];
   delete HOLDERS[a.id + '|' + S.chk];
   S.lastReport = { headline: rep.headline, text: rep.text };
-  S.sheet = { type:'report' };
-  S.screen = 'chks';
+  S.sheet = null;
+  S.screen = 'aps';
   savePersist(); savePhotos();
+  flushUnsent();
   sendEmail(`${a.name} ${chkName}: ${rep.headline}`, rep.text).then(ok => {
     if (ok) toast('Report emailed.');
   });
-  toast(fails.length ? 'Submitted. Supervisor notified.' : 'Submitted. All normal.');
+  toast(fails.length ? 'Submitted. Report not emailed yet.' : 'Submitted. All normal.');
+}
+
+// 1.6.3: send finished checks to the FD13 Worker (the Hub and CG Staff read from there).
+// A check that cannot be sent (no signal) stays in history with sent:false and is retried every 15 seconds.
+async function flushUnsent(){
+  const todo = S.history.filter(h => h.sent !== true).slice(0, 20);
+  let changed = false;
+  for (const h of todo){
+    try {
+      const res = await fetch(CONFIG.worker + '/check', {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ id: h.id, day: h.day, ts: h.ts, apId: h.apId, apName: h.apName, chk: h.chk, chkName: h.chkName, by: h.by, total: h.total, fails: h.fails })
+      });
+      if (res.ok) { h.sent = true; changed = true; }
+    } catch (e) { break; }
+  }
+  if (changed) savePersist();
 }
 
 function sheetSave(){
