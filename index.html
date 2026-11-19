@@ -240,7 +240,7 @@ h3{font-size:17px;font-weight:600;margin:0 0 8px}
    for a normal rollout.
    ========================================================= */
 const CONFIG = {
-  version: '1.5.1',
+  version: '1.6.0',
   versionDate: '2026-11-18',
   // Shared layout Worker (North Country Cloudflare, workers.dev). Reads are public; admin writes need a Microsoft ID token.
   worker: 'https://fd13-apparatus.d-boyce.workers.dev',
@@ -573,6 +573,7 @@ function fresh(){
     stOrder: JSON.parse(JSON.stringify(SEED.stOrder)),
     apEdits: {},
     extraAps: [],           // units added by admins, same shape as APP_LIST
+    outbox: [],             // 1.6: finished checks and problem updates waiting to reach the Worker
     chkOrder: JSON.parse(JSON.stringify(SEED.chkOrder)),
     zones: JSON.parse(JSON.stringify(SEED.zones)),
     drafts: {},             // per device, per day: { ans:{}, ... }
@@ -593,7 +594,7 @@ function fresh(){
   };
 }
 
-const PERSIST = ['stOrder','apEdits','extraAps','chkOrder','zones','drafts','history','problems'];
+const PERSIST = ['stOrder','apEdits','extraAps','chkOrder','zones','drafts','history','problems','outbox'];
 const PHOTO_KEY = () => CONFIG.storageKey + '_photos';
 function savePersist(){
   const o = {};
@@ -714,6 +715,8 @@ async function pushNow(apId, chk){
     key: serverKey(apId, chk),
     doc: { ans: d.ans, claim: chk === VEH ? null : { by: S.user.name, ts: Date.now() } }
   };
+  // 1.6: the item count, so the NCEMS Hub (FD13 side) can show percent done
+  if (chk !== VEH) body.doc.total = getZones(apId, chk).reduce((n, z) => n + z.items.length, 0);
   try {
     const res = await fetch(CONFIG.worker + '/progress', {
       method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body)
@@ -1396,6 +1399,7 @@ function problemBroken(id){
   } else {
     toast('Still broken noted. It stays on the list.');
   }
+  if (p.kind === 'check') sendToWorker('/problem', { apId: p.apId, label: p.label, action: 'broken', by: live(), note: p.note || '' });
 }
 
 function problemClose(id, status){
@@ -1404,6 +1408,7 @@ function problemClose(id, status){
   p.status = status;
   p.closedBy = live();
   p.closedAt = Date.now();
+  if (p.kind === 'check') sendToWorker('/problem', { apId: p.apId, label: p.label, action: status === 'fixed' ? 'fixed' : 'closed', by: live() });
   toast(status === 'fixed' ? 'Marked fixed.' : 'Closed.');
 }
 
@@ -1477,10 +1482,14 @@ async function submitCheck(){
   const dateStr = new Date().toLocaleString();
   const rep = buildReport(S.apId, S.chk, live(), dateStr);
   const chkName = CHK_LIST.find(c => c.id === S.chk).name;
+  const plinks = (S.photoLinks && S.photoLinks[dk(S.apId, S.chk)]) || {};
   const fails = rep.fails.map(x => ({
-    zone: x.z.name, item: x.i.name, fix: d.ans[x.i.id].fix, note: d.ans[x.i.id].note || ''
+    zone: x.z.name, item: x.i.name, fix: d.ans[x.i.id].fix, note: d.ans[x.i.id].note || '', photo: plinks[x.i.id] || ''
   }));
-  S.history.unshift({ id: uid(), day: todayKey(), ts: Date.now(), apId: a.id, apName: a.name, chk: S.chk, chkName, by: live(), fails });
+  const rec = { id: uid(), day: todayKey(), ts: Date.now(), apId: a.id, apName: a.name, chk: S.chk, chkName, by: live(), fails };
+  S.history.unshift(rec);
+  // 1.6: the finished check also goes to the Worker, so the NCEMS Hub (FD13 side) and admins on other phones see it
+  sendToWorker('/check', { ...rec, total: rep.total });
   // Unable to fix goes to the open problems list. Repeats update the same record.
   fails.filter(f => f.fix === 'unable').forEach(f => {
     const existing = S.problems.find(p => p.status === 'open' && p.kind === 'check' && p.apId === a.id && p.label === f.item);
@@ -1507,6 +1516,35 @@ async function submitCheck(){
   });
   toast(fails.length ? 'Submitted. Supervisor notified.' : 'Submitted. All normal.');
 }
+
+/* 1.6: things for the Worker wait in an outbox on the phone until they go through (bad signal in the bay is normal).
+   Bad data (a 4xx answer) is dropped so it never blocks the line. */
+let outboxBusy = false;
+function sendToWorker(path, body){
+  if (!CONFIG.worker) return;
+  S.outbox = S.outbox || [];
+  S.outbox.push({ path, body, at: Date.now() });
+  if (S.outbox.length > 300) S.outbox = S.outbox.slice(-300);
+  savePersist();
+  flushOutbox();
+}
+async function flushOutbox(){
+  if (!CONFIG.worker || outboxBusy || !(S.outbox && S.outbox.length)) return;
+  outboxBusy = true;
+  try {
+    while (S.outbox.length){
+      const job = S.outbox[0];
+      let res;
+      try {
+        res = await fetch(CONFIG.worker + job.path, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(job.body) });
+      } catch (e) { break; }                  // offline: try again later
+      if (res.status >= 500 || res.status === 404 || res.status === 429) break;   // Worker trouble or not updated yet: try again later
+      S.outbox.shift();                        // sent, or bad data that will never go
+      savePersist();
+    }
+  } finally { outboxBusy = false; }
+}
+window.addEventListener('online', flushOutbox);
 
 function sheetSave(){
   const sh = S.sheet;
@@ -1692,7 +1730,7 @@ document.addEventListener('click', e => {
     }
     case 'prob-broken': problemBroken(id); break;
     case 'prob-fixed': problemClose(id, 'fixed'); break;
-    case 'prob-reopen': { const p = S.problems.find(x => x.id === id); if (p) { p.status = 'open'; } break; }
+    case 'prob-reopen': { const p = S.problems.find(x => x.id === id); if (p) { p.status = 'open'; if (p.kind === 'check') sendToWorker('/problem', { apId: p.apId, label: p.label, action: 'reopen', by: live() }); } break; }
     case 'toggle-admin': if (S.user && S.user.admin) S.adminMode = !S.adminMode; break;
     case 'move': {
       if (el.dataset.kind === 'ap') moveAp(id, Number(el.dataset.dir));
@@ -1882,8 +1920,10 @@ window.addEventListener('load', async () => {
   if (S.user) startPulls();
   checkVersion();
   setInterval(checkVersion, 5 * 60 * 1000);
+  flushOutbox();
+  setInterval(flushOutbox, 60 * 1000);
 });
-document.addEventListener('visibilitychange', () => { if (!document.hidden) { if (S.user) pullDay(); checkVersion(); } });
+document.addEventListener('visibilitychange', () => { if (!document.hidden) { if (S.user) pullDay(); checkVersion(); flushOutbox(); } });
 render();
 </script>
 </body>

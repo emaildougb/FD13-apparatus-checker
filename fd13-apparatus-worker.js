@@ -1,6 +1,10 @@
 /* =========================================================
    FD13 Apparatus Check, shared state Worker (fd13-apparatus)
    North Country EMS Cloudflare account. D1 database: fd13-apparatus-db.
+   Version 1.3 (2026-11-18). Finished checks are saved here (POST /check) and open problems are kept
+     here (from checks, plus POST /problem when someone marks one fixed). New read routes for the NCEMS Hub,
+     FD13 side only: GET /fire/today and GET /fire/problems. CLIENT_ID can now hold more than one app.
+     Shared progress can carry the check's item count (total) so the Hub can show percent done.
    Version 1.2 (2026-11-18). Adds check photos (/photos, /photo/...) stored in R2, same pattern as ncems-checks.
    Version 1.1 (2026-11-18). Adds shared check progress (/progress) and extraAps in /state.
 
@@ -15,23 +19,30 @@
      DELETE /progress?key=   remove one shared copy (after a check is submitted)
      POST /photos?unit=&label=  store one photo in R2 (public, volunteers). Body: the image bytes, Content-Type image/jpeg, png, heic, heif, webp or gif. Returns {ok, key, url}.
      GET  /photo/<key>       serve one stored photo (public read; keys are random)
+     POST /check             save one finished check (public, volunteers). Body: {id, day, ts, apId, apName, chk, chkName, by, total, fails:[{zone, item, fix, note, photo}]}
+                             Unable to fix opens (or updates) a problem for that unit and item. Fixed on the spot closes it.
+     POST /problem           mark a problem from the checker's list (public, volunteers). Body: {apId, label, action: fixed|closed|reopen|broken, by, note}
+     GET  /fire/today        FD13 rigs today for the NCEMS Hub: last check, percent, open problems (any signed in NCEMS account)
+     GET  /fire/problems     open FD13 problems for the NCEMS Hub (any signed in NCEMS account)
 
    Auth
      Browser sends the Microsoft ID token as "Authorization: Bearer <token>".
-     The token must be signed by the tenant, issued for CLIENT_ID, and not expired.
+     The token must be signed by the tenant, issued for one of the apps in CLIENT_ID, and not expired.
      The email in the token (preferred_username) must be in ADMINS to write.
 
    Variables (Settings > Variables and Secrets)
      TENANT_ID   153dc089-095e-4a20-8d10-39321a0aca09
-     CLIENT_ID   06fbbe41-0b42-4b07-a071-cb4ffa5092c9
+     CLIENT_ID   06fbbe41-0b42-4b07-a071-cb4ffa5092c9,54eb93f5-05e0-42ca-a49d-f4df05c3331c
+                 (FD13 Apparatus Check, then the NCEMS Hub. Comma separated. CG Staff f758d1fe... goes here later.)
      ADMINS      d.boyce@northcountryems.org,m.wagner@northcountryems.org,c.andrus@northcountryems.org
-     ORIGINS     https://apparatus.fd13.org,https://emaildougb.github.io
+     ORIGINS     https://apparatus.fd13.org,https://emaildougb.github.io,https://hub.northcountryems.org
+     Admin writes (PUT /state, /log, /revert) still need the FD13 Apparatus Check app (the first CLIENT_ID).
    Binding
      DB          D1 database fd13-apparatus-db
      PHOTOS      R2 bucket fd13-check-photos
    ========================================================= */
 
-const VERSION = '1.2';
+const VERSION = '1.3';
 const SERVICE = 'fd13-apparatus';
 const MAX_BODY = 2 * 1024 * 1024;   // 2 MB
 const LOG_KEEP = 500;               // keep the newest 500 log entries
@@ -127,7 +138,7 @@ async function verifyIdToken(token, env) {
   const iss = `https://login.microsoftonline.com/${env.TENANT_ID}/v2.0`;
   if (payload.iss !== iss) throw httpError(401, 'Sign in again (wrong issuer)');
   if (payload.tid && payload.tid !== env.TENANT_ID) throw httpError(401, 'Sign in again (wrong tenant)');
-  if (payload.aud !== env.CLIENT_ID) throw httpError(401, 'Sign in again (wrong audience)');
+  if (!clientList(env).includes(payload.aud)) throw httpError(401, 'Sign in again (wrong audience)');
   const nowSec = Math.floor(Date.now() / 1000);
   if (typeof payload.exp !== 'number' || payload.exp < nowSec - 60) throw httpError(401, 'Sign in again (expired)');
 
@@ -144,7 +155,11 @@ async function verifyIdToken(token, env) {
 
   const email = String(payload.preferred_username || payload.email || payload.upn || '').toLowerCase();
   if (!email) throw httpError(401, 'Sign in again (no email on token)');
-  return { email, name: payload.name || email };
+  return { email, name: payload.name || email, aud: payload.aud };
+}
+
+function clientList(env) {
+  return String(env.CLIENT_ID || '').split(',').map(s => s.trim()).filter(Boolean);
 }
 
 async function currentUser(request, env, verify) {
@@ -158,6 +173,15 @@ async function requireAdmin(request, env, verify) {
   const user = await currentUser(request, env, verify);
   if (!user) throw httpError(401, 'Sign in with Microsoft to make changes');
   if (!adminList(env).includes(user.email)) throw httpError(403, 'This account is not an admin');
+  // 1.3: admin writes only from the FD13 Apparatus Check app itself, never from the Hub's sign in
+  if (user.aud && user.aud !== clientList(env)[0]) throw httpError(403, 'Make changes in FD13 Apparatus Check');
+  return user;
+}
+
+// 1.3: any signed in NCEMS account (FD13 Apparatus Check or the Hub). Used by the Hub's read routes.
+async function requireSignedIn(request, env, verify) {
+  const user = await currentUser(request, env, verify);
+  if (!user) throw httpError(401, 'Sign in with Microsoft');
   return user;
 }
 
@@ -179,6 +203,32 @@ async function ensureSchema(db) {
       action TEXT NOT NULL,
       summary TEXT NOT NULL,
       before_json TEXT
+    )`),
+    db.prepare(`CREATE TABLE IF NOT EXISTS checks (
+      id TEXT PRIMARY KEY,
+      day TEXT NOT NULL,
+      ts INTEGER NOT NULL,
+      ap_id TEXT NOT NULL,
+      chk TEXT NOT NULL,
+      by_name TEXT NOT NULL,
+      body TEXT NOT NULL
+    )`),
+    db.prepare(`CREATE INDEX IF NOT EXISTS checks_day ON checks (day, ap_id)`),
+    db.prepare(`CREATE TABLE IF NOT EXISTS problems (
+      key TEXT PRIMARY KEY,
+      ap_id TEXT NOT NULL,
+      ap_name TEXT NOT NULL,
+      label TEXT NOT NULL,
+      zone TEXT NOT NULL,
+      chk TEXT NOT NULL,
+      note TEXT NOT NULL,
+      photo TEXT NOT NULL,
+      by_name TEXT NOT NULL,
+      opened_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL,
+      status TEXT NOT NULL,
+      closed_by TEXT,
+      closed_at INTEGER
     )`)
   ]);
   schemaReady = true;
@@ -317,6 +367,10 @@ async function putProgress(db, key, incoming, now = Date.now()) {
     claim = { by: inClaim.by, ts: now };
   }
   const doc = { ans: mergeAns(prev.ans || {}, cleanAns(incoming.ans)), claim, ts: now };
+  // 1.3: the check's item count, so the Hub can show percent done. Older checkers leave it out.
+  const total = Number(incoming.total);
+  if (Number.isInteger(total) && total > 0 && total <= 400) doc.total = total;
+  else if (prev.total) doc.total = prev.total;
   await db.prepare(`INSERT INTO kv (key, value, updated_at, updated_by) VALUES (?, ?, ?, ?)
                     ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at, updated_by = excluded.updated_by`)
     .bind(key, JSON.stringify(doc), new Date(now).toISOString(), inClaim ? inClaim.by : 'crew')
@@ -335,6 +389,168 @@ async function getProgressDay(db, day) {
   const docs = {};
   for (const r of rows.results || []) docs[r.key] = JSON.parse(r.value);
   return docs;
+}
+
+/* ---------- finished checks and problems (1.3) ---------- */
+
+/* The FD13 units built into FD13 Apparatus Check (APP_LIST in its index.html). Keep this list matched to it.
+   Units added in the app (extraAps), renames (apEdits) and the order on each station (stOrder) come from /state. */
+const BASE_RIGS = [
+  { id: 'eng51', name: 'Engine 51', st: 's131' },
+  { id: 'eng52', name: 'Engine 52', st: 's131' },
+  { id: 'sq51', name: 'Squad 51', st: 's131' },
+  { id: 'wt51', name: 'Water Tender 51', st: 's131' },
+  { id: 'wt52', name: 'Water Tender 52', st: 's131' },
+  { id: 'eng50', name: 'Engine 50', st: 's132' },
+  { id: 'brush51', name: 'Brush 51', st: 's132' }
+];
+const STATION_NAMES = { s131: 'Station 131 (51)', s132: 'Station 132 (50)' };
+const ID_RE = /^[A-Za-z0-9_-]{1,40}$/;
+const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
+const CHECK_KEEP_DAYS = 400;
+
+const str = (v, max) => (typeof v === 'string' ? v : v == null ? '' : String(v)).slice(0, max);
+
+function pacificDay(now = Date.now()) {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Los_Angeles', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(now));
+}
+
+function cleanPhotoUrl(v) {
+  const u = str(v, 400);
+  return /^https:\/\/[\w.-]+\/photo\/[\w./-]+$/.test(u) ? u : '';
+}
+
+function cleanCheck(b) {
+  if (!b || typeof b !== 'object' || Array.isArray(b)) throw httpError(400, 'Check must be an object');
+  const id = str(b.id, 40), apId = str(b.apId, 40), chk = str(b.chk, 40), day = str(b.day, 10);
+  if (!ID_RE.test(id)) throw httpError(400, 'Bad check id');
+  if (!ID_RE.test(apId)) throw httpError(400, 'Bad unit id');
+  if (!ID_RE.test(chk)) throw httpError(400, 'Bad checklist id');
+  if (!DAY_RE.test(day)) throw httpError(400, 'Give the day as YYYY-MM-DD');
+  const by = str(b.by, 80).trim();
+  if (!by) throw httpError(400, 'Who did the check?');
+  const ts = Number.isFinite(b.ts) ? Math.round(b.ts) : Date.now();
+  const total = Number.isInteger(b.total) && b.total >= 0 && b.total <= 400 ? b.total : null;
+  const fails = (Array.isArray(b.fails) ? b.fails : []).slice(0, 200).map(f => ({
+    zone: str(f && f.zone, 120), item: str(f && f.item, 160),
+    fix: f && (f.fix === 'fixed' || f.fix === 'unable') ? f.fix : null,
+    note: str(f && f.note, 2000), photo: cleanPhotoUrl(f && f.photo)
+  })).filter(f => f.item);
+  return { id, day, ts, apId, apName: str(b.apName, 80) || apId, chk, chkName: str(b.chkName, 80) || chk, by, total, fails };
+}
+
+const probKey = (apId, label) => apId + '|' + label;
+
+async function saveCheck(db, c, now = Date.now()) {
+  const had = await db.prepare(`SELECT id FROM checks WHERE id = ?`).bind(c.id).first();
+  if (had) return { ok: true, duplicate: true };   // the phone sent it twice (retry after a bad signal)
+  const stmts = [
+    db.prepare(`INSERT INTO checks (id, day, ts, ap_id, chk, by_name, body) VALUES (?, ?, ?, ?, ?, ?, ?)`)
+      .bind(c.id, c.day, c.ts, c.apId, c.chk, c.by, JSON.stringify(c)),
+    db.prepare(`DELETE FROM checks WHERE day < ?`).bind(new Date(now - CHECK_KEEP_DAYS * 86400000).toISOString().slice(0, 10))
+  ];
+  for (const f of c.fails) {
+    const key = probKey(c.apId, f.item);
+    if (f.fix === 'unable') {
+      // Opens the problem, or updates it if it is already open. A closed one opens again with a new date.
+      stmts.push(db.prepare(`INSERT INTO problems (key, ap_id, ap_name, label, zone, chk, note, photo, by_name, opened_at, updated_at, status, closed_by, closed_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'open', NULL, NULL)
+          ON CONFLICT(key) DO UPDATE SET ap_name = excluded.ap_name, zone = excluded.zone, chk = excluded.chk, note = excluded.note,
+            photo = CASE WHEN excluded.photo <> '' THEN excluded.photo ELSE problems.photo END,
+            by_name = excluded.by_name, updated_at = excluded.updated_at,
+            opened_at = CASE WHEN problems.status = 'open' THEN problems.opened_at ELSE excluded.opened_at END,
+            status = 'open', closed_by = NULL, closed_at = NULL`)
+        .bind(key, c.apId, c.apName, f.item, f.zone, c.chk, f.note, f.photo, c.by, c.ts, c.ts));
+    } else if (f.fix === 'fixed') {
+      stmts.push(db.prepare(`UPDATE problems SET status = 'fixed', closed_by = ?, closed_at = ?, updated_at = ? WHERE key = ? AND status = 'open'`)
+        .bind(c.by, c.ts, c.ts, key));
+    }
+  }
+  await db.batch(stmts);
+  return { ok: true };
+}
+
+async function markProblem(db, b, now = Date.now()) {
+  if (!b || typeof b !== 'object') throw httpError(400, 'Body must be an object');
+  const apId = str(b.apId, 40), label = str(b.label, 160), by = str(b.by, 80).trim() || 'crew';
+  const action = str(b.action, 10);
+  if (!ID_RE.test(apId) || !label) throw httpError(400, 'Give the unit and item');
+  const key = probKey(apId, label);
+  if (action === 'fixed' || action === 'closed') {
+    await db.prepare(`UPDATE problems SET status = ?, closed_by = ?, closed_at = ?, updated_at = ? WHERE key = ? AND status = 'open'`)
+      .bind(action, by, now, now, key).run();
+  } else if (action === 'reopen') {
+    await db.prepare(`UPDATE problems SET status = 'open', closed_by = NULL, closed_at = NULL, updated_at = ? WHERE key = ?`)
+      .bind(now, key).run();
+  } else if (action === 'broken') {
+    await db.prepare(`UPDATE problems SET by_name = ?, updated_at = ?, note = CASE WHEN ? <> '' THEN ? ELSE note END WHERE key = ? AND status = 'open'`)
+      .bind(by, now, str(b.note, 2000), str(b.note, 2000), key).run();
+  } else throw httpError(400, 'Action must be fixed, closed, reopen or broken');
+  return { ok: true };
+}
+
+function rigList(state) {
+  const st = state || {};
+  const edits = st.apEdits || {};
+  const all = [...BASE_RIGS, ...(Array.isArray(st.extraAps) ? st.extraAps : [])];
+  const byId = {};
+  all.forEach(a => { byId[a.id] = { ...a, ...(edits[a.id] || {}) }; });
+  const out = [];
+  if (st.stOrder && typeof st.stOrder === 'object') {
+    Object.keys(st.stOrder).forEach(stId => (st.stOrder[stId] || []).forEach(id => {
+      if (byId[id] && !out.some(x => x.id === id)) out.push({ ...byId[id], st: stId });
+    }));
+  }
+  if (!out.length) BASE_RIGS.forEach(a => out.push({ ...byId[a.id] }));
+  return out.map(a => ({ id: a.id, name: str(a.name, 80), station: STATION_NAMES[a.st] || str(a.st, 40) }));
+}
+
+function rowToProblem(r) {
+  return { apId: r.ap_id, apName: r.ap_name, item: r.label, zone: r.zone, chk: r.chk, note: r.note, photo: r.photo, by: r.by_name, openedAt: r.opened_at, updatedAt: r.updated_at };
+}
+
+async function fireToday(db, day, now = Date.now()) {
+  const saved = await loadState(db);
+  const rigs = rigList(saved ? saved.state : null);
+  const checks = (await db.prepare(`SELECT body FROM checks WHERE day = ? ORDER BY ts DESC`).bind(day).all()).results || [];
+  const lastEver = (await db.prepare(`SELECT ap_id, MAX(ts) AS ts, body FROM checks GROUP BY ap_id`).all()).results || [];
+  const probs = (await db.prepare(`SELECT * FROM problems WHERE status = 'open'`).all()).results || [];
+  const progress = await getProgressDay(db, day);
+  const out = rigs.map(r => {
+    const today = checks.map(x => JSON.parse(x.body)).filter(c => c.apId === r.id);
+    const last = today[0] || null;
+    const ever = lastEver.find(x => x.ap_id === r.id);
+    const lastAny = last || (ever ? JSON.parse(ever.body) : null);
+    // In progress: the shared copies for this unit today (not the vehicle values)
+    let pct = last ? 100 : 0, holder = '';
+    if (!last) {
+      Object.keys(progress).forEach(k => {
+        const parts = k.replace(/^p:/, '').split('|');
+        if (parts[1] !== r.id || parts[2] === 'vehicle') return;
+        const d = progress[k], n = Object.keys(d.ans || {}).length;
+        const p = d.total ? Math.min(99, Math.round(n / d.total * 100)) : (n ? 1 : 0);
+        if (p > pct) { pct = p; holder = d.claim && d.claim.by ? d.claim.by : ''; }
+      });
+    }
+    const open = probs.filter(p => p.ap_id === r.id);
+    return {
+      id: r.id, name: r.name, station: r.station,
+      checked: !!last, pct, inProgressBy: holder,
+      checksToday: today.map(c => ({ chk: c.chkName, by: c.by, at: c.ts, abnormal: c.fails.length })),
+      last: lastAny ? { chk: lastAny.chkName, by: lastAny.by, at: lastAny.ts, day: lastAny.day } : null,
+      openProblems: open.length
+    };
+  });
+  return {
+    day, at: now,
+    checkedToday: out.filter(r => r.checked).length, rigCount: out.length,
+    openProblems: probs.length, rigs: out
+  };
+}
+
+async function fireProblems(db) {
+  const rows = (await db.prepare(`SELECT * FROM problems WHERE status = 'open' ORDER BY opened_at DESC LIMIT 200`).all()).results || [];
+  return { problems: rows.map(rowToProblem) };
 }
 
 /* ---------- routes ---------- */
@@ -438,6 +654,27 @@ async function handle(request, env, verify = verifyIdToken) {
       return json({ ok: true, updatedAt: at, updatedBy: user.email, summary }, 200, cors);
     }
 
+    if (path === '/check' && method === 'POST') {
+      const c = cleanCheck(await readJSON(request));
+      return json(await saveCheck(env.DB, c), 200, cors);
+    }
+
+    if (path === '/problem' && method === 'POST') {
+      return json(await markProblem(env.DB, await readJSON(request)), 200, cors);
+    }
+
+    if (path === '/fire/today' && method === 'GET') {
+      await requireSignedIn(request, env, verify);
+      const day = url.searchParams.get('day') || pacificDay();
+      if (!DAY_RE.test(day)) throw httpError(400, 'Give the day as YYYY-MM-DD');
+      return json(await fireToday(env.DB, day), 200, cors);
+    }
+
+    if (path === '/fire/problems' && method === 'GET') {
+      await requireSignedIn(request, env, verify);
+      return json(await fireProblems(env.DB), 200, cors);
+    }
+
     if (path === '/progress' && method === 'GET') {
       const day = url.searchParams.get('day') || '';
       if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) throw httpError(400, 'Give the day as YYYY-MM-DD');
@@ -474,4 +711,4 @@ export default {
 };
 
 // For tests only
-export { handle, verifyIdToken, cleanPhotoPart, PHOTO_KEY_RE, validateState, summarize, putProgress, getProgressDay, pruneProgress, cleanAns, mergeAns, PROGRESS_RE };
+export { handle, verifyIdToken, cleanCheck, saveCheck, markProblem, fireToday, fireProblems, rigList, pacificDay, cleanPhotoPart, PHOTO_KEY_RE, validateState, summarize, putProgress, getProgressDay, pruneProgress, cleanAns, mergeAns, PROGRESS_RE };

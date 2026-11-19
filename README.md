@@ -2,7 +2,7 @@
 
 Daily apparatus check app for Clark County Fire District 13.
 
-**Version 1.5.1 (2026-11-18)**
+**Version 1.6.0 (2026-11-18)**
 
 ## Links
 
@@ -11,6 +11,19 @@ Daily apparatus check app for Clark County Fire District 13.
 - Upload: [https://github.com/emaildougb/FD13-apparatus-checker/upload/main](https://github.com/emaildougb/FD13-apparatus-checker/upload/main)
 
 ## Changelog
+
+### 1.6.0 (2026-11-18)
+- Finished checks are now sent to the FD13 Worker (POST /check), not just saved on the phone. The phone keeps its own copy like before.
+- Marking a problem fixed, closed, reopened or still broken is sent too (POST /problem), so the open problems list lives on the Worker.
+- Anything that can't send right away (bad signal) waits on the phone and goes out later, every minute and whenever the app comes back to the screen.
+- Shared check progress now carries the item count, so the NCEMS Hub can show percent done.
+- Needs fd13-apparatus Worker 1.3 (deployed 11/18). The NCEMS Hub 3.18 reads these checks on its Fire District 13 side.
+
+### Worker 1.3 (fd13-apparatus, deployed 11/18/2026)
+- New routes: POST /check, POST /problem, GET /fire/today and GET /fire/problems (the last two need a Microsoft sign in, from this app or the NCEMS Hub).
+- CLIENT_ID now holds two apps: this app first, then the NCEMS Hub (54eb93f5). Layout changes still only work from this app. ORIGINS adds https://hub.northcountryems.org.
+- New D1 tables: checks (kept 400 days) and problems.
+- The Worker has its own list of the seven built in rigs (BASE_RIGS). If a rig is ever added to APP_LIST in index.html, add it there too. Rigs added from the admin screen show up on their own.
 
 ### 1.5.1 (2026-11-18)
 - Fixed the black pill that showed under the tabs on phones and desktop. The message bar is now hidden until it has a message.
