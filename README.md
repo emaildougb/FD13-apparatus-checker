@@ -2,7 +2,7 @@
 
 Daily apparatus check app for Clark County Fire District 13.
 
-**Version 1.6.0 (2026-11-18)**
+**Version 1.6.1 (2026-11-19)**
 
 ## Links
 
@@ -11,6 +11,10 @@ Daily apparatus check app for Clark County Fire District 13.
 - Upload: [https://github.com/emaildougb/FD13-apparatus-checker/upload/main](https://github.com/emaildougb/FD13-apparatus-checker/upload/main)
 
 ## Changelog
+
+### 1.6.1 (2026-11-19)
+- Each day has three checks, 33 percent each: Engine 51, Squad 51 and today's shift rig. On Sunday, Engine 50 and Brush 51 are added for five checks, and the weekly line shows.
+- Shift tags: A shift green, B shift blue, C shift red. Daily and Weekly tags on the other rigs.
 
 ### 1.6.0 (2026-11-18)
 - Required checks shown on the Apparatus page. Daily: Engine 51 and Squad 51 (100% when both are done). Weekly by Sunday: Engine 50 and Brush 51 at Station 132 (100% when both are done). Shift rigs: Water Tender 51 (A), Engine 52 (B), Water Tender 52 (C), one check each per week.

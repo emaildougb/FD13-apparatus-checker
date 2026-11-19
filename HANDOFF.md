@@ -186,3 +186,8 @@ Build notes for the next session:
 - Completion counts a submitted Pre Shift check for that unit (in the history list). Weekly runs Monday to Sunday.
 - Not yet done: the Hub Wall and Desk need the same daily and weekly counts (separate build on the Hub side).
 
+## 1.6.1 change: daily percentage and colors
+
+- Daily: Engine 51, Squad 51 and today's shift rig, 33 percent each. Sunday adds Engine 50 and Brush 51 (done Monday to Sunday) for 5 checks total.
+- Shift colors: A green, B blue, C red.
+
