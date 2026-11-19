@@ -2,7 +2,7 @@
 
 Daily apparatus check app for Clark County Fire District 13.
 
-**Version 1.6.1 (2026-11-19)**
+**Version 1.6.2 (2026-11-19)**
 
 ## Links
 
@@ -11,6 +11,9 @@ Daily apparatus check app for Clark County Fire District 13.
 - Upload: [https://github.com/emaildougb/FD13-apparatus-checker/upload/main](https://github.com/emaildougb/FD13-apparatus-checker/upload/main)
 
 ## Changelog
+
+### 1.6.2 (2026-11-19)
+- Engine 51 and Squad 51 are marked Mandatory daily on their cards.
 
 ### 1.6.1 (2026-11-19)
 - Each day has three checks, 33 percent each: Engine 51, Squad 51 and today's shift rig. On Sunday, Engine 50 and Brush 51 are added for five checks, and the weekly line shows.
