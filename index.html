@@ -248,7 +248,7 @@ h3{font-size:17px;font-weight:600;margin:0 0 8px}
    for a normal rollout.
    ========================================================= */
 const CONFIG = {
-  version: '1.6.3',
+  version: '1.6.4',
   versionDate: '2026-11-19',
   // Shared layout Worker (North Country Cloudflare, workers.dev). Reads are public; admin writes need a Microsoft ID token.
   worker: 'https://fd13-apparatus.d-boyce.workers.dev',
@@ -718,9 +718,11 @@ function queuePush(apId, chk){
 async function pushNow(apId, chk){
   if (!CONFIG.worker || !S.user) return;
   const d = getDraft(apId, chk);
+  // 1.6.4: send the item count so the Hub and CG Staff can show percent done (the Worker needs total for that)
+  const total = getZones(apId, chk).reduce((n, z) => n + z.items.length, 0);
   const body = {
     key: serverKey(apId, chk),
-    doc: { ans: d.ans, claim: chk === VEH ? null : { by: S.user.name, ts: Date.now() } }
+    doc: { ans: d.ans, total, claim: chk === VEH ? null : { by: S.user.name, ts: Date.now() } }
   };
   try {
     const res = await fetch(CONFIG.worker + '/progress', {
