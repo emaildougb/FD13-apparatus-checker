@@ -224,7 +224,7 @@ h3{font-size:17px;font-weight:600;margin:0 0 8px}
 
 .toast{position:fixed;left:50%;top:96px;transform:translate(-50%,-160%);background:#1B1616;color:#fff;padding:12px 18px;border-radius:999px;font-size:14px;z-index:60;transition:transform .25s ease,opacity .25s ease;max-width:92vw;text-align:center;opacity:0;visibility:hidden;pointer-events:none}
 .toast.show{transform:translate(-50%,0);opacity:1;visibility:visible}
-.update-bar{position:fixed;left:0;right:0;top:0;z-index:70;background:var(--accent);color:#fff;padding:10px 14px;display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;font-size:14px;font-weight:600;text-align:center}
+.update-bar{position:fixed;left:0;right:0;top:0;z-index:70;background:var(--accent);color:#fff;padding:10px 14px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;font-size:14px;font-weight:600;text-align:center}
 .update-bar[hidden]{display:none}
 .update-bar button{min-height:36px;padding:0 14px;border-radius:999px;background:#fff;color:var(--accent);font-weight:700}
 .sched{background:#fff;border:1px solid var(--border);border-radius:var(--radius-s);padding:10px 12px;margin:8px 0 12px;font-size:14px}
@@ -248,8 +248,8 @@ h3{font-size:17px;font-weight:600;margin:0 0 8px}
    for a normal rollout.
    ========================================================= */
 const CONFIG = {
-  version: '1.6.5',
-  versionDate: '2026-11-19',
+  version: '1.7.0',
+  versionDate: '2026-11-21',
   // Shared layout Worker (North Country Cloudflare, workers.dev). Reads are public; admin writes need a Microsoft ID token.
   worker: 'https://fd13-apparatus.d-boyce.workers.dev',
   // Bump seedVersion whenever the built-in layout (SEED) changes. Devices re-apply SEED once per bump.
@@ -286,13 +286,13 @@ const STATIONS = [
 ];
 
 const APP_LIST = [
-  { id:'eng51',   name:'Engine 51',       st:'s131', info:'Rosenbauer Commander, 2019' },
+  { id:'eng51',   name:'Engine 51',       st:'s131', info:'Rosenbauer Commander, 2019', requiresDef:true },
   { id:'eng52',   name:'Engine 52',       st:'s131', info:'KME, 1994' },
   { id:'sq51',    name:'Squad 51',        st:'s131', info:'Ford F550, 2018' },
-  { id:'wt51',    name:'Water Tender 51', st:'s131', info:'Peterbilt 348, 2020' },
+  { id:'wt51',    name:'Water Tender 51', st:'s131', info:'Peterbilt 348, 2020', requiresDef:true },
   { id:'wt52',    name:'Water Tender 52', st:'s131', info:'Kenworth, 1972' },
   { id:'eng50',   name:'Engine 50',       st:'s132', info:'Rosenbauer 4400DT570, 2005' },
-  { id:'brush51', name:'Brush 51',        st:'s132', info:'Ford F550, 2017' }
+  { id:'brush51', name:'Brush 51',        st:'s132', info:'Ford F550, 2017', requiresDef:true }
 ];
 
 const CHK_LIST = [
@@ -569,7 +569,7 @@ const VEH = 'vehicle';                    // pseudo checklist id for hours, mile
 const FUEL_OPTS = [['1/4','25%'],['1/2','50%'],['3/4','75%'],['Full','100%']];
 
 function buildZones(chk, apId){
-  return TPL[chk].map((z, zi) => ({
+  return (TPL[chk] || []).map((z, zi) => ({
     id: `${apId}-${chk}-z${zi}`,
     name: z.name,
     items: z.items.map((it, ii) => ({ id: `${apId}-${chk}-z${zi}-i${ii}`, name: it[0], desc: it[1] }))
@@ -807,6 +807,22 @@ const AP = id => ({ ...(ALL_APS().find(a => a.id === id) || {}), ...(S.apEdits[i
 const stAps = st => (S.stOrder[st] || []).map(AP).filter(a => a && a.id);
 const zKey = () => `${S.apId}|${S.chk}`;
 const getZones = (apId, chk) => S.zones[`${apId}|${chk}`] || buildZones(chk, apId);
+// 1.7.0: checklist tabs per unit. Saved on the unit's apEdits as tabs: { id, name, hidden }. Default is the three shared checklists.
+function tabsFor(apId){
+  const saved = (S.apEdits[apId] || {}).tabs;
+  if (saved) return saved;
+  return S.chkOrder.map(id => ({ id, name: (CHK_LIST.find(c => c.id === id) || {}).name, hidden: false })).filter(t => t.name);
+}
+function setTabs(apId, tabs){ S.apEdits[apId] = { ...(S.apEdits[apId] || {}), tabs: tabs.map(t => ({ ...t })) }; }
+const visibleTabs = apId => tabsFor(apId).filter(t => !t.hidden);
+const tabDef = (apId, chk) => tabsFor(apId).find(t => t.id === chk) || { id: chk, name: (CHK_LIST.find(c => c.id === chk) || {}).name || 'Check', hidden: false };
+function moveTab(apId, id, dir){
+  const t = tabsFor(apId).slice();
+  const i = t.findIndex(x => x.id === id), j = i + dir;
+  if (i < 0 || j < 0 || j >= t.length) return;
+  [t[i], t[j]] = [t[j], t[i]];
+  setTabs(apId, t);
+}
 const cloneZones = z => JSON.parse(JSON.stringify(z));
 // A draft holds the answers for one check on one unit today. The vehicle draft holds hours, mileage, fuel and DEF.
 function getDraft(apId, chk){
@@ -842,7 +858,7 @@ function chkStatus(apId, chk){
   return { k:'none', label:'Not started' };
 }
 function apStatus(apId){
-  const sts = CHK_LIST.map(c => chkStatus(apId, c.id).k);
+  const sts = visibleTabs(apId).map(t => chkStatus(apId, t.id).k);
   if (sts.includes('fail')) return 'fail';
   if (sts.every(s => s === 'done')) return 'done';
   if (sts.some(s => s !== 'none')) return 'prog';
@@ -851,7 +867,7 @@ function apStatus(apId){
 // Someone else's live claim on a unit (any of its checks), if any.
 function holderFor(apId){
   const me = live();
-  const hit = CHK_LIST.map(c => HOLDERS[apId + '|' + c.id]).find(c => claimFresh(c) && c.by !== me);
+  const hit = visibleTabs(apId).map(t => HOLDERS[apId + '|' + t.id]).find(c => claimFresh(c) && c.by !== me);
   return hit || null;
 }
 
@@ -907,7 +923,7 @@ function shell(main){
     <div class="head">
     <header class="topbar"><div class="brand">
       <img src="logo.png" alt="Clark County Fire District 13 logo">
-      <div><b>FD13 Apparatus Check</b><small>Clark County Fire District 13</small></div>
+      <div><b>FD13 Apparatus Check</b><small>Clark County Fire District 13. Version ${CONFIG.version}</small></div>
     </div></header>
     <nav class="tabs" aria-label="Main"><div class="tabs-in">
       <button class="${onApps ? 'on' : ''}" data-act="go" data-screen="aps" aria-current="${onApps}">Apparatus</button>
@@ -1100,8 +1116,14 @@ function viewChks(){
   const adm = isAdminMode();
   const probs = openProblems(a.id);
   const holder = holderFor(a.id);
-  const list = S.chkOrder.map(id => CHK_LIST.find(x => x.id === id)).filter(Boolean);
+  const all = tabsFor(a.id);
+  const list = adm ? all : all.filter(t => !t.hidden);
   const rows = list.map((c, i) => {
+    if (c.hidden) return `<article class="unit" data-id="${c.id}">
+      <div class="unit-row"><div class="unit-main" style="cursor:default">
+        <span class="unit-name">${esc(c.name)}</span><span class="unit-info">Archived. Crews do not see this tab.</span></div></div>
+      <div class="unit-foot"><div class="edit-row"><button data-act="restore-tab" data-id="${c.id}">Restore</button></div></div>
+    </article>`;
     const st = chkStatus(a.id, c.id);
     const label = st.k === 'none' ? 'Start' : st.k === 'prog' ? 'Continue' : 'Review';
     return `<article class="unit" data-id="${c.id}">
@@ -1114,8 +1136,11 @@ function viewChks(){
         <div class="unit-side"><span class="status ${st.k === 'fail' ? 'fail' : st.k === 'done' ? 'done' : st.k === 'prog' ? 'prog' : ''}">${label}</span><span class="chev" aria-hidden="true">&#8250;</span></div>
       </div>
       ${adm ? `<div class="unit-foot"><div class="edit-row">
-          <button data-act="move" data-kind="chk" data-id="${c.id}" data-dir="-1" ${i === 0 ? 'disabled' : ''}>Move up</button>
-          <button data-act="move" data-kind="chk" data-id="${c.id}" data-dir="1" ${i === list.length - 1 ? 'disabled' : ''}>Move down</button>
+          <button data-act="move" data-kind="tab" data-id="${c.id}" data-dir="-1" ${i === 0 ? 'disabled' : ''}>Move up</button>
+          <button data-act="move" data-kind="tab" data-id="${c.id}" data-dir="1" ${i === list.length - 1 ? 'disabled' : ''}>Move down</button>
+          <button class="edit" data-act="rename-tab" data-id="${c.id}">Rename</button>
+          <button data-act="copy-tab" data-id="${c.id}">Copy to units</button>
+          <button data-act="archive-tab" data-id="${c.id}">Archive</button>
         </div></div>` : ''}
     </article>`;
   }).join('');
@@ -1123,8 +1148,9 @@ function viewChks(){
       a.name, a.info || '', `<button class="btn-second" data-act="req" data-id="${a.id}">Report a problem</button>`)}
     ${holder ? `<div class="notice"><b>${esc(holder.by)}</b> is checking this unit now. You can both work. Answers are shared as you go, and the newer answer wins for each item.</div>` : ''}
     ${probs.length ? problemsCard(probs, 'Known problems on this unit', 'Still broken or now fixed? Tap one, then open the checklist.') : ''}
-    ${adm ? `<div class="notice warn"><b>Layout editing is on.</b> Move the checklists with the buttons on each row.</div>` : ''}
-    <div class="card-list">${rows}</div>`;
+    ${adm ? `<div class="notice warn"><b>Layout editing is on.</b> Move, rename, copy or archive the tabs with the buttons on each row. Archived tabs are hidden from crews until you restore them.</div>` : ''}
+    <div class="card-list">${rows}</div>
+    ${adm ? `<button class="add-btn" data-act="add-tab">+ Add a tab to this unit</button>` : ''}`;
 }
 
 function problemsCard(list, title, sub){
@@ -1144,8 +1170,9 @@ function problemsCard(list, title, sub){
 
 function fieldDisplay(d, f){ return d.ans[f] && d.ans[f].v != null ? d.ans[f].v : ''; }
 
-function vehicleHTML(a){
+function vehicleHTML(a, chkId){
   const v = getDraft(a.id, VEH);
+  const pre = chkId === 'preshift';
   const fuel = fieldDisplay(v, 'fuel'), def = fieldDisplay(v, 'def');
   const pick = (field, cur) => FUEL_OPTS.map(([val, pct]) =>
     `<button class="${cur === val ? 'on' : ''}" data-act="veh-pick" data-field="${field}" data-val="${val}" aria-pressed="${cur === val}">${val === 'Full' ? 'Full' : val.replace('1/4','&#188;').replace('1/2','&#189;').replace('3/4','&#190;')}<small>${pct}</small></button>`).join('');
@@ -1155,11 +1182,11 @@ function vehicleHTML(a){
       <div><label for="veh-hours">Engine hours</label><input id="veh-hours" data-veh="hours" inputmode="decimal" placeholder="Type the hours" value="${esc(fieldDisplay(v, 'hours'))}"></div>
       <div><label for="veh-miles">Mileage</label><input id="veh-miles" data-veh="mileage" inputmode="numeric" placeholder="Type the miles" value="${esc(fieldDisplay(v, 'mileage'))}"></div>
     </div>
-    <div class="picker-label">Fuel level <span>for the record</span></div>
-    <div class="picker" role="group" aria-label="Fuel level">${pick('fuel', fuel)}</div>
-    <div class="picker-label">DEF level <span>for the record</span></div>
-    <div class="picker" role="group" aria-label="DEF level">${pick('def', def)}</div>
-    <div class="fyi">Fuel and DEF are recorded only. A low level does not fail the check.</div>
+    ${pre ? `<div class="picker-label">Fuel level <span>for the record</span></div>
+    <div class="picker" role="group" aria-label="Fuel level">${pick('fuel', fuel)}</div>` : ''}
+    ${pre && a.requiresDef ? `<div class="picker-label">DEF level <span>for the record</span></div>
+    <div class="picker" role="group" aria-label="DEF level">${pick('def', def)}</div>` : ''}
+    ${pre ? `<div class="fyi">${a.requiresDef ? 'Fuel and DEF are' : 'Fuel is'} recorded only. A low level does not fail the check.</div>` : ''}
   </section>`;
 }
 
@@ -1230,7 +1257,7 @@ function missingFor(apId, chk){
 
 function viewCheck(){
   const a = AP(S.apId);
-  const chk = CHK_LIST.find(c => c.id === S.chk);
+  const chk = tabDef(a.id, S.chk);
   const adm = isAdminMode();
   const zones = getZones(a.id, chk.id);
   const d = getDraft(a.id, chk.id);
@@ -1259,7 +1286,7 @@ function viewCheck(){
     <div style="height:12px"></div>
     ${holderOn ? `<div class="notice"><b>${esc(holder.by)}</b> has this check open too. Answers merge item by item, and the newer answer wins.</div>` : ''}
     ${carried.length ? problemsCard(carried, 'Known problems on this unit', 'Carried from earlier checks. Still broken fills in this check. Now fixed closes it.') : ''}
-    ${vehicleHTML(a)}
+    ${vehicleHTML(a, chk.id)}
     <p class="finding">${finding}</p>
     <nav class="zjump" aria-label="Zones">${pills}</nav>
     ${adm ? `<div class="notice warn"><b>Layout editing is on.</b> Move zones and checks with their buttons. Edit changes names and descriptions.</div>` : ''}
@@ -1340,7 +1367,8 @@ function sheetHTML(){
       const isExtra = (S.extraAps || []).some(x => x.id === sh.id);
       title = 'Edit unit';
       body = `<label for="ename">Name</label><input id="ename" value="${esc(a.name)}">
-        <label for="einfo">Make, model, year</label><input id="einfo" value="${esc(a.info || '')}">`;
+        <label for="einfo">Make, model, year</label><input id="einfo" value="${esc(a.info || '')}">
+        <label for="edef">Requires DEF level</label><select id="edef"><option value="yes" ${a.requiresDef ? 'selected' : ''}>Yes, record DEF on Pre Shift</option><option value="no" ${a.requiresDef ? '' : 'selected'}>No, hide DEF</option></select>`;
       actions = (isExtra ? '<button class="btn-danger" data-act="del-ap" data-id="' + sh.id + '">Remove unit</button>' : '') + cancel + '<button class="btn-primary" data-act="sheet-save">Save</button>';
       break;
     }
@@ -1358,6 +1386,31 @@ function sheetHTML(){
       body = `<label for="ename">Check name</label><input id="ename" value="${esc(it ? it.name : '')}">
         <label for="edesc">What to verify</label><textarea id="edesc">${esc(it ? it.desc : '')}</textarea>`;
       actions = '<button class="btn-danger" data-act="del-item">Delete check</button>' + cancel + '<button class="btn-primary" data-act="sheet-save">Save</button>';
+      break;
+    }
+    case 'add-tab':
+      title = 'Add a tab';
+      body = `<label for="ename">Tab name</label><input id="ename" placeholder="Example: Hose Check">
+        <p class="muted" style="margin:0">The new tab starts empty. Add zones and checks to it with the buttons inside.</p>`;
+      actions = cancel + '<button class="btn-primary" data-act="sheet-save">Add tab</button>';
+      break;
+    case 'rename-tab': {
+      const t = tabDef(S.apId, sh.id);
+      title = 'Rename tab';
+      body = `<label for="ename">Tab name</label><input id="ename" value="${esc(t.name)}">`;
+      actions = cancel + '<button class="btn-primary" data-act="sheet-save">Save</button>';
+      break;
+    }
+    case 'copy-tab': {
+      const t = tabDef(sh.apId, sh.id);
+      const others = ALL_APS().filter(x => x.id !== sh.apId);
+      title = 'Copy this tab';
+      body = `<p class="muted" style="margin:0">Copies the checklist setup only: zones, checks and descriptions. No answers, photos, problems or past checks are copied, and each copy is independent after it is made.</p>
+        <label for="ename">Name of the new tab</label><input id="ename" value="${esc(t.name)}">
+        <fieldset style="border:0;padding:0;margin:12px 0 0"><legend style="font-weight:600;margin-bottom:6px">Copy to</legend>
+        ${others.map(x => `<label style="display:flex;align-items:center;gap:8px;min-height:40px"><input type="checkbox" data-copy-to="${esc(x.id)}" style="width:20px;height:20px"> ${esc(AP(x.id).name)}</label>`).join('')}
+        </fieldset>`;
+      actions = cancel + '<button class="btn-primary" data-act="sheet-save">Copy</button>';
       break;
     }
     case 'reset':
@@ -1501,7 +1554,7 @@ function problemClose(id, status){
 
 function buildReport(apId, chk, by, dateStr){
   const a = AP(apId);
-  const chkName = CHK_LIST.find(c => c.id === chk).name;
+  const chkName = tabDef(apId, chk).name;
   const zones = getZones(apId, chk);
   const d = getDraft(apId, chk);
   const v = getDraft(apId, VEH);
@@ -1517,8 +1570,10 @@ function buildReport(apId, chk, by, dateStr){
   const vv = k => (v.ans[k] && v.ans[k].v) || 'not entered';
   lines.push(`Engine hours: ${vv('hours')}`);
   lines.push(`Mileage: ${vv('mileage')}`);
-  lines.push(`Fuel (for the record): ${vv('fuel')}`);
-  lines.push(`DEF (for the record): ${vv('def')}`);
+  if (chk === 'preshift'){
+    lines.push(`Fuel (for the record): ${vv('fuel')}`);
+    if (a.requiresDef) lines.push(`DEF (for the record): ${vv('def')}`);
+  }
   lines.push('');
   lines.push(fails.length ? `${fails.length} ${fails.length === 1 ? 'ABNORMAL' : 'ABNORMAL ITEMS'}` : 'ALL NORMAL');
   lines.push(`${passed} of ${items.length} normal`);
@@ -1568,7 +1623,7 @@ async function submitCheck(){
   await finishPhotos(S.apId, S.chk);
   const dateStr = new Date().toLocaleString();
   const rep = buildReport(S.apId, S.chk, live(), dateStr);
-  const chkName = CHK_LIST.find(c => c.id === S.chk).name;
+  const chkName = tabDef(a.id, S.chk).name;
   const photoMap = S.photoLinks[dk(S.apId, S.chk)] || {};
   const fails = rep.fails.map(x => ({
     zone: x.z.name, item: x.i.name, fix: d.ans[x.i.id].fix, note: d.ans[x.i.id].note || '', photo: photoMap[x.i.id] || ''
@@ -1644,13 +1699,52 @@ function sheetSave(){
       toast(`${name} added.`);
       break;
     }
+    case 'add-tab': {
+      const name = v('ename');
+      if (!name) { toast('Give the tab a name first.'); return; }
+      const t = tabsFor(S.apId).slice();
+      t.push({ id: 'c' + uid(), name, hidden: false });
+      setTabs(S.apId, t);
+      S.sheet = null;
+      toast(`${name} added.`);
+      break;
+    }
+    case 'rename-tab': {
+      const name = v('ename');
+      if (!name) { toast('Give the tab a name first.'); return; }
+      setTabs(S.apId, tabsFor(S.apId).map(x => x.id === sh.id ? { ...x, name } : x));
+      S.sheet = null;
+      break;
+    }
+    case 'copy-tab': {
+      const name = v('ename');
+      if (!name) { toast('Give the new tab a name first.'); return; }
+      const dests = [...document.querySelectorAll('input[data-copy-to]:checked')].map(x => x.dataset.copyTo);
+      if (!dests.length) { toast('Choose at least one unit to copy to.'); return; }
+      const srcZones = getZones(sh.apId, sh.id);
+      dests.forEach(dest => {
+        const id = 'c' + uid();
+        const t = tabsFor(dest).slice();
+        t.push({ id, name, hidden: false });
+        setTabs(dest, t);
+        S.zones[`${dest}|${id}`] = srcZones.map(z => ({
+          id: uid(), name: z.name,
+          items: z.items.map(i => ({ id: uid(), name: i.name, desc: i.desc }))
+        }));
+      });
+      S.sheet = null;
+      toast(`Copied to ${dests.length} ${dests.length === 1 ? 'unit' : 'units'}.`);
+      break;
+    }
     case 'edit-ap': {
       const base = AP(sh.id);
       const name = v('ename') || base.name, info = v('einfo');
+      const requiresDef = ((document.getElementById('edef') || {}).value) === 'yes';
       if (S.extraAps.some(x => x.id === sh.id)) {
         S.extraAps = S.extraAps.map(x => x.id === sh.id ? { ...x, name, info } : x);
+        S.apEdits[sh.id] = { ...(S.apEdits[sh.id] || {}), requiresDef };
       } else {
-        S.apEdits[sh.id] = { name, info };
+        S.apEdits[sh.id] = { ...(S.apEdits[sh.id] || {}), name, info, requiresDef };
       }
       S.sheet = null;
       break;
@@ -1807,7 +1901,7 @@ document.addEventListener('click', e => {
     case 'toggle-admin': if (S.user && S.user.admin) S.adminMode = !S.adminMode; break;
     case 'move': {
       if (el.dataset.kind === 'ap') moveAp(id, Number(el.dataset.dir));
-      else if (el.dataset.kind === 'chk') moveIn(S.chkOrder, id, Number(el.dataset.dir));
+      else if (el.dataset.kind === 'tab') moveTab(S.apId, id, Number(el.dataset.dir));
       break;
     }
     case 'move-zone': moveZone(el.dataset.zone, Number(el.dataset.dir)); break;
@@ -1849,6 +1943,16 @@ document.addEventListener('click', e => {
       S.sheet = null;
       break;
     }
+    case 'add-tab': S.sheet = { type:'add-tab' }; break;
+    case 'rename-tab': S.sheet = { type:'rename-tab', id }; break;
+    case 'copy-tab': S.sheet = { type:'copy-tab', apId: S.apId, id }; break;
+    case 'archive-tab': {
+      const t = tabDef(S.apId, id);
+      if (!confirm(`Archive "${t.name}" on ${AP(S.apId).name}? Crews will not see this tab. Past checks stay saved, and you can restore it from this list.`)) return;
+      setTabs(S.apId, tabsFor(S.apId).map(x => x.id === id ? { ...x, hidden: true } : x));
+      break;
+    }
+    case 'restore-tab': setTabs(S.apId, tabsFor(S.apId).map(x => x.id === id ? { ...x, hidden: false } : x)); break;
     case 'req': S.sheet = { type:'request', apId: id || '' }; break;
     case 'export': {
       const data = { exportedAt: new Date().toISOString(), apEdits: S.apEdits, extraAps: S.extraAps, stOrder: S.stOrder, chkOrder: S.chkOrder, zones: S.zones };
@@ -1968,15 +2072,21 @@ function isNewer(a, b){
   }
   return false;
 }
+// 1.7.0: the banner says "Click here to update". Tapping it, or leaving a check screen with nothing open, loads the new copy.
+// Saved drafts, history and layout are in this browser, so they stay. The timestamp only forces a fresh copy of the page.
+let updateTo = null, updateTimer = null;
+function doUpdate(){ location.href = location.pathname + '?v=' + Date.now(); }
 function showUpdate(v){
   const bar = document.getElementById('update');
   if (!bar) return;
-  bar.innerHTML = '<span>A new version (' + v + ') is ready.</span><button type="button" id="resetNew">Reset and update</button>';
+  updateTo = v;
+  bar.innerHTML = '<span>A new version (' + esc(v) + ') is ready. Click here to update.</span>';
   bar.hidden = false;
-  document.getElementById('resetNew').onclick = () => {
-    // Saved drafts, history and layout are in this browser, so they stay. The timestamp only forces a fresh copy of the page.
-    location.href = location.pathname + '?v=' + Date.now();
-  };
+  bar.onclick = doUpdate;
+  // Update on its own when no check is open, so nobody loses an answer in progress.
+  if (!updateTimer) updateTimer = setInterval(() => {
+    if (updateTo && !(S.screen === 'check' && S.apId && S.chk) && !S.sheet) doUpdate();
+  }, 15 * 1000);
 }
 async function checkVersion(){
   try {

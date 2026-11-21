@@ -2,7 +2,7 @@
 
 Daily apparatus check app for Clark County Fire District 13.
 
-**Version 1.6.5 (2026-11-19)**
+**Version 1.7.0 (2026-11-21)**
 
 ## Links
 
@@ -11,6 +11,16 @@ Daily apparatus check app for Clark County Fire District 13.
 - Upload: [https://github.com/emaildougb/FD13-apparatus-checker/upload/main](https://github.com/emaildougb/FD13-apparatus-checker/upload/main)
 
 ## Changelog
+
+### 1.7.0 (2026-11-21)
+
+- Requires DEF is a setting on each unit (admins: Edit on the unit). On for Engine 51, Brush 51 and Water Tender 51. Off for every other unit. When off, the DEF level is hidden everywhere and is not in the report.
+- Fuel level and DEF level are only on the Pre Shift tab. They are no longer on Monthly Detailed or SCBA. Engine hours and mileage stay on every tab. Existing saved readings and past checks are not changed.
+- Admins can manage tabs per unit: Rename, Move up and down, Archive (hidden from crews after a confirm; Restore brings it back), and Add a tab. Archive never deletes a check.
+- Admins can Copy to units: copies one whole tab (its zones and checks) to one or more other units as a new tab with the chosen name. Copies are independent. Answers, photos, problems and past checks are never copied.
+- Tab and copy controls are admin only.
+- The version number shows under the title at the top of the app.
+- When a new version is on the server, the top bar says "A new version (x) is ready. Click here to update." Tapping it loads the new copy. If no check is open, the app updates on its own within about 15 seconds. Saved answers stay on the device.
 
 ### 1.6.5 (2026-11-19)
 
