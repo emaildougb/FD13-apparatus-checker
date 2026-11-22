@@ -2,7 +2,7 @@
 
 Daily apparatus check app for Clark County Fire District 13.
 
-**Version 1.7.0 (2026-11-21)**
+**Version 1.7.1 (2026-11-21)**
 
 ## Links
 
@@ -11,6 +11,12 @@ Daily apparatus check app for Clark County Fire District 13.
 - Upload: [https://github.com/emaildougb/FD13-apparatus-checker/upload/main](https://github.com/emaildougb/FD13-apparatus-checker/upload/main)
 
 ## Changelog
+
+### 1.7.1 (2026-11-21)
+
+- Problems no longer fail silently. A red bar at the bottom stays on screen when a save on this phone fails, when a photo cannot be kept, when layout changes are not saved for everyone, when crew sharing stays down for 45 seconds, or when saved data cannot be read.
+- Copy error details on the red bar copies a short report (version, time, screen and the problem) to paste into a message. No data file is needed.
+- If saved data on the phone cannot be read, the app keeps a copy of the unreadable data on the phone before it starts fresh, so nothing is overwritten.
 
 ### 1.7.0 (2026-11-21)
 

@@ -226,6 +226,9 @@ h3{font-size:17px;font-weight:600;margin:0 0 8px}
 .toast.show{transform:translate(-50%,0);opacity:1;visibility:visible}
 .update-bar{position:fixed;left:0;right:0;top:0;z-index:70;background:var(--accent);color:#fff;padding:10px 14px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;font-size:14px;font-weight:600;text-align:center}
 .update-bar[hidden]{display:none}
+.problem-bar{position:fixed;left:0;right:0;bottom:0;z-index:80;background:#8E1B1B;color:#fff;padding:10px 14px;display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;font-size:14px;font-weight:600;text-align:center}
+.problem-bar[hidden]{display:none}
+.problem-bar button{min-height:36px;padding:0 14px;border-radius:999px;background:#fff;color:#8E1B1B;font-weight:700}
 .update-bar button{min-height:36px;padding:0 14px;border-radius:999px;background:#fff;color:var(--accent);font-weight:700}
 .sched{background:#fff;border:1px solid var(--border);border-radius:var(--radius-s);padding:10px 12px;margin:8px 0 12px;font-size:14px}
 .sched-row{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:4px 0}
@@ -242,13 +245,14 @@ h3{font-size:17px;font-weight:600;margin:0 0 8px}
 <div id="sheet"></div>
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
 <div id="update" class="update-bar" role="status" hidden></div>
+<div id="problem" class="problem-bar" role="alert" hidden></div>
 <script>
 /* =========================================================
    CONFIG. Fill these in before go live. Nothing else needs editing
    for a normal rollout.
    ========================================================= */
 const CONFIG = {
-  version: '1.7.0',
+  version: '1.7.1',
   versionDate: '2026-11-21',
   // Shared layout Worker (North Country Cloudflare, workers.dev). Reads are public; admin writes need a Microsoft ID token.
   worker: 'https://fd13-apparatus.d-boyce.workers.dev',
@@ -605,17 +609,63 @@ function fresh(){
 
 const PERSIST = ['stOrder','apEdits','extraAps','chkOrder','zones','drafts','history','problems'];
 const PHOTO_KEY = () => CONFIG.storageKey + '_photos';
+/* 1.7.1: problems stay on screen until they clear. Nothing fails silently.
+   The red bar at the bottom has Copy error details, so the report can be sent without a data file. */
+const PROBLEMS_NOW = {};
+const ERRS = [];
+let LOAD_NOTE = '';
+function reportProblem(key, msg, err){
+  ERRS.unshift({ ts: new Date().toISOString(), key, msg, err: err ? String(err && err.message || err) : '' });
+  ERRS.length = Math.min(ERRS.length, 20);
+  delete PROBLEMS_NOW[key];
+  PROBLEMS_NOW[key] = msg;   // newest last, so the bar shows the latest problem
+  renderProblem();
+}
+function clearProblem(key){
+  if (!PROBLEMS_NOW[key]) return;
+  delete PROBLEMS_NOW[key];
+  renderProblem();
+}
+function renderProblem(){
+  const bar = document.getElementById('problem');
+  if (!bar) return;
+  const keys = Object.keys(PROBLEMS_NOW);
+  if (!keys.length){ bar.hidden = true; bar.innerHTML = ''; return; }
+  bar.innerHTML = `<span>${esc(PROBLEMS_NOW[keys[keys.length - 1]])}</span><button type="button" data-act="copy-errors">Copy error details</button>`;
+  bar.hidden = false;
+}
+function errorDetails(){
+  return JSON.stringify({
+    app: CONFIG.version,
+    when: new Date().toISOString(),
+    screen: S && S.screen,
+    unit: S && S.apId,
+    check: S && S.chk,
+    signedIn: !!(S && S.user),
+    now: PROBLEMS_NOW,
+    recent: ERRS.slice(0, 10)
+  }, null, 2);
+}
+async function copyErrors(){
+  const text = errorDetails();
+  try { await navigator.clipboard.writeText(text); toast('Error details copied. Paste them in your message.'); }
+  catch (e) { toast('Could not copy. Select the message on the red bar and copy it.'); }
+}
 function savePersist(){
   const o = {};
   PERSIST.forEach(k => o[k] = S[k]);
   o.seedVersion = CONFIG.seedVersion;
   S.savedAt = Date.now();
-  try { localStorage.setItem(CONFIG.storageKey, JSON.stringify(o)); return true; }
-  catch(e) { toast('This phone is out of room to save. Download the data file and clear old checks.'); return false; }
+  try { localStorage.setItem(CONFIG.storageKey, JSON.stringify(o)); clearProblem('save'); return true; }
+  catch(e) {
+    reportProblem('save', 'This phone could not save your last change. Do not close the app. Tap Copy error details and report it.', e);
+    toast('This phone could not save. See the red bar.');
+    return false;
+  }
 }
 function savePhotos(){
   try { localStorage.setItem(PHOTO_KEY(), JSON.stringify(S.photos)); localStorage.setItem(PHOTO_KEY() + 'links', JSON.stringify(S.photoLinks)); }
-  catch(e) { toast('This photo is too large to keep on this phone.'); }
+  catch(e) { reportProblem('photos', 'A photo could not be kept on this phone. Upload it or retake it. Tap Copy error details to report it.', e); }
 }
 // Every change: save on this phone, send the open check to the shared copy, and push layout changes for admins.
 function save(){
@@ -663,15 +713,16 @@ async function pushSharedLayout(){
   if (now === lastPushed) return;
   try {
     const token = await idToken();
-    if (!token) { toast('Not saved for everyone. Sign out and sign in with Microsoft again.'); return; }
+    if (!token) { reportProblem('layout', 'Layout changes are not saved for everyone. Sign out and sign in with Microsoft again.'); toast('Not saved for everyone. Sign out and sign in with Microsoft again.'); return; }
     const res = await fetch(CONFIG.worker + '/state', {
       method: 'PUT',
       headers: { 'content-type': 'application/json', authorization: 'Bearer ' + token },
       body: now
     });
-    if (res.ok) { lastPushed = now; setSyncState(true); }
-    else toast('Not saved for everyone. Try again in a moment.');
+    if (res.ok) { lastPushed = now; setSyncState(true); clearProblem('layout'); }
+    else { reportProblem('layout', 'Layout changes are not saved for everyone yet (server status ' + res.status + '). They will try again.'); toast('Not saved for everyone. Try again in a moment.'); }
   } catch(e) {
+    reportProblem('layout', 'Layout changes are not saved for everyone. Check the connection. They will try again.', e);
     toast('Not saved for everyone. Check the connection and try again.');
   }
 }
@@ -685,7 +736,15 @@ const HOLDERS = {};                       // 'apId|chk' -> { by, ts } claim from
 let pullTimer = null;
 const pushTimers = {};
 
+let shareTimer = null;
 function setSyncState(ok){
+  if (ok) { clearTimeout(shareTimer); shareTimer = null; clearProblem('share'); }
+  else if (!shareTimer) {
+    shareTimer = setTimeout(() => {
+      shareTimer = null;
+      if (SHARE.ok === false) reportProblem('share', 'Crew sharing is not working. Your answers are saved on this phone, but the crew cannot see them yet. Tap Copy error details and report it.');
+    }, 45 * 1000);
+  }
   if (SHARE.ok === ok && Date.now() - SHARE.at < 5000) return;
   SHARE.ok = ok; SHARE.at = Date.now();
   const el = document.querySelector('[data-sync]');
@@ -787,7 +846,13 @@ function refreshIfIdle(){
 function load(){
   const base = fresh();
   let o = null;
-  try { o = JSON.parse(localStorage.getItem(CONFIG.storageKey) || 'null'); } catch(e) {}
+  const raw = localStorage.getItem(CONFIG.storageKey);
+  try { o = JSON.parse(raw || 'null'); }
+  catch(e) {
+    // Keep a copy of the unreadable data before anything saves over it.
+    try { localStorage.setItem(CONFIG.storageKey + '_unreadable_' + Date.now(), raw); } catch(x) {}
+    LOAD_NOTE = 'Saved data on this phone could not be read, so the app started fresh. A copy of the old data was kept on this phone. Tap Copy error details and report it.';
+  }
   if (o) PERSIST.forEach(k => { if (o[k] !== undefined) base[k] = o[k]; });
   try { base.photos = JSON.parse(localStorage.getItem(CONFIG.storageKey + '_photos') || '{}') || {}; } catch(e) { base.photos = {}; }
   try { base.photoLinks = JSON.parse(localStorage.getItem(CONFIG.storageKey + '_photos' + 'links') || '{}') || {}; } catch(e) { base.photoLinks = {}; }
@@ -1899,6 +1964,7 @@ document.addEventListener('click', e => {
     case 'prob-fixed': problemClose(id, 'fixed'); break;
     case 'prob-reopen': { const p = S.problems.find(x => x.id === id); if (p) { p.status = 'open'; } break; }
     case 'toggle-admin': if (S.user && S.user.admin) S.adminMode = !S.adminMode; break;
+    case 'copy-errors': copyErrors(); return;
     case 'move': {
       if (el.dataset.kind === 'ap') moveAp(id, Number(el.dataset.dir));
       else if (el.dataset.kind === 'tab') moveTab(S.apId, id, Number(el.dataset.dir));
@@ -2097,6 +2163,7 @@ async function checkVersion(){
   } catch (e) { /* offline: try again later */ }
 }
 window.addEventListener('load', async () => {
+  if (LOAD_NOTE) reportProblem('load', LOAD_NOTE);
   await msalHandleRedirect();
   await loadSharedLayout();
   render();
