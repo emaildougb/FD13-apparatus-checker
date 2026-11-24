@@ -2,7 +2,7 @@
 
 Daily apparatus check app for Clark County Fire District 13.
 
-**Version 1.7.1 (2026-11-21)**
+**Version 1.7.2 (2026-11-24)**
 
 ## Links
 
@@ -11,6 +11,12 @@ Daily apparatus check app for Clark County Fire District 13.
 - Upload: [https://github.com/emaildougb/FD13-apparatus-checker/upload/main](https://github.com/emaildougb/FD13-apparatus-checker/upload/main)
 
 ## Changelog
+
+### 1.7.2 (2026-11-24)
+
+- Finished checks keep the standard name on the record (Pre Shift, SCBA, Monthly Detailed) even when a tab is renamed, so the Hub and the crew board still count them.
+- A finished check that does not reach the crew board shows on the red bar and is sent again. Nothing is dropped.
+- If the shared copy does not keep an answer from this phone, the red bar says so.
 
 ### 1.7.1 (2026-11-21)
 

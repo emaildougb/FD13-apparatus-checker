@@ -252,8 +252,8 @@ h3{font-size:17px;font-weight:600;margin:0 0 8px}
    for a normal rollout.
    ========================================================= */
 const CONFIG = {
-  version: '1.7.1',
-  versionDate: '2026-11-21',
+  version: '1.7.2',
+  versionDate: '2026-11-24',
   // Shared layout Worker (North Country Cloudflare, workers.dev). Reads are public; admin writes need a Microsoft ID token.
   worker: 'https://fd13-apparatus.d-boyce.workers.dev',
   // Bump seedVersion whenever the built-in layout (SEED) changes. Devices re-apply SEED once per bump.
@@ -792,6 +792,11 @@ async function pushNow(apId, chk){
     if (!res.ok) throw new Error('status ' + res.status);
     const out = await res.json();
     setSyncState(true);
+    // 1.7.2: answers on this phone that the shared copy did not keep
+    const kept = (out.doc && out.doc.ans) || {};
+    const lost = Object.keys(d.ans).filter(k => d.ans[k] && d.ans[k].v && !kept[k]);
+    if (lost.length) reportProblem('kept', `The shared copy did not keep ${lost.length} ${lost.length === 1 ? 'answer' : 'answers'} from this phone. Tap Copy error details and report it.`);
+    else clearProblem('kept');
     applyDoc(body.key, out.doc, true);
   } catch(e) { setSyncState(false); }
 }
@@ -1688,7 +1693,9 @@ async function submitCheck(){
   await finishPhotos(S.apId, S.chk);
   const dateStr = new Date().toLocaleString();
   const rep = buildReport(S.apId, S.chk, live(), dateStr);
-  const chkName = tabDef(a.id, S.chk).name;
+  // 1.7.2: the crew board and Hub read the standard name (Pre Shift, SCBA, Monthly Detailed), so a renamed tab keeps it on the record.
+  const std = CHK_LIST.find(c => c.id === S.chk);
+  const chkName = std ? std.name : tabDef(a.id, S.chk).name;
   const photoMap = S.photoLinks[dk(S.apId, S.chk)] || {};
   const fails = rep.fails.map(x => ({
     zone: x.z.name, item: x.i.name, fix: d.ans[x.i.id].fix, note: d.ans[x.i.id].note || '', photo: photoMap[x.i.id] || ''
@@ -1734,9 +1741,11 @@ async function flushUnsent(){
         body: JSON.stringify({ id: h.id, day: h.day, ts: h.ts, apId: h.apId, apName: h.apName, chk: h.chk, chkName: h.chkName, by: h.by, total: h.total, fails: h.fails })
       });
       if (res.ok) { h.sent = true; changed = true; }
-    } catch (e) { break; }
+      else reportProblem('check', `${h.apName} ${h.chkName} did not reach the crew board (server status ${res.status}). It is kept on this phone and will be sent again. Tap Copy error details and report it.`);
+    } catch (e) { reportProblem('check', `${h.apName} ${h.chkName} did not reach the crew board. Check the connection. It is kept on this phone and will be sent again.`, e); break; }
   }
   if (changed) savePersist();
+  if (!S.history.some(h => h.sent !== true)) clearProblem('check');
 }
 
 function sheetSave(){
