@@ -252,7 +252,7 @@ h3{font-size:17px;font-weight:600;margin:0 0 8px}
    for a normal rollout.
    ========================================================= */
 const CONFIG = {
-  version: '1.7.4',
+  version: '1.7.5',
   versionDate: '2026-11-24',
   // Shared layout Worker (North Country Cloudflare, workers.dev). Reads are public; admin writes need a Microsoft ID token.
   worker: 'https://fd13-apparatus.d-boyce.workers.dev',
@@ -806,7 +806,7 @@ async function pushNow(apId, chk){
     // 1.7.2: answers on this phone that the shared copy did not keep
     const kept = (out.doc && out.doc.ans) || {};
     const lost = Object.keys(d.ans).filter(k => d.ans[k] && d.ans[k].v && !kept[k]);
-    if (lost.length) reportProblem('kept', `The shared copy did not keep ${lost.length} ${lost.length === 1 ? 'answer' : 'answers'} from this phone. Tap Copy error details and report it.`);
+    if (lost.length) reportProblem('kept', `The shared copy did not keep ${lost.length} ${lost.length === 1 ? 'answer' : 'answers'} from this phone. Tap Copy error details and report it.`, 'items: ' + lost.join(', ') + ' | key ' + body.key);
     else clearProblem('kept');
     applyDoc(body.key, out.doc, true);
   } catch(e) { setSyncState(false); }
@@ -1750,6 +1750,8 @@ async function submitCheck(){
 // A check that cannot be sent (no signal) stays in history with sent:false and is retried every 15 seconds.
 // 1.7.4: checks the server refused with a 400. They stay on this phone, unchanged, and are not sent again until the app is reopened.
 const REFUSED = new Set();
+// 1.7.5: the day sent to the server is always YYYY-MM-DD. A stored day in any other form is rebuilt from the check time, without changing the saved record.
+const sendDay = h => /^\d{4}-\d{2}-\d{2}$/.test(String(h.day || '')) ? h.day : dutyDay(new Date(h.ts));
 async function flushUnsent(){
   const todo = S.history.filter(h => h.sent !== true && !REFUSED.has(h.id)).slice(0, 20);
   let changed = false;
@@ -1757,13 +1759,13 @@ async function flushUnsent(){
     try {
       const res = await fetch(CONFIG.worker + '/check', {
         method: 'POST', headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ id: h.id, day: h.day, ts: h.ts, apId: h.apId, apName: h.apName, chk: h.chk, chkName: h.chkName, by: h.by, total: h.total, fails: h.fails })
+        body: JSON.stringify({ id: h.id, day: sendDay(h), ts: h.ts, apId: h.apId, apName: h.apName, chk: h.chk, chkName: h.chkName, by: h.by, total: h.total, fails: h.fails })
       });
       if (res.ok) { h.sent = true; changed = true; }
       else {
         // 1.7.4: keep the server's own reason so it shows in Copy error details
         const text = await res.text().catch(() => '');
-        const detail = 'server status ' + res.status + (text ? ': ' + text.slice(0, 300) : ' (no response body)');
+        const detail = 'server status ' + res.status + (text ? ': ' + text.slice(0, 300) : ' (no response body)') + ' | day stored: ' + JSON.stringify(h.day) + ' | day sent: ' + sendDay(h);
         if (res.status === 400) {
           REFUSED.add(h.id);
           reportProblem('check', `${h.apName} ${h.chkName} was refused by the server (400). It is kept on this phone unchanged and is not sent again until the app is reopened. Tap Copy error details and report it.`, detail);

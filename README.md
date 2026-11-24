@@ -2,7 +2,7 @@
 
 Daily apparatus check app for Clark County Fire District 13.
 
-**Version 1.7.4 (2026-11-24)**
+**Version 1.7.5 (2026-11-24)**
 
 ## Links
 
@@ -11,6 +11,12 @@ Daily apparatus check app for Clark County Fire District 13.
 - Upload: [https://github.com/emaildougb/FD13-apparatus-checker/upload/main](https://github.com/emaildougb/FD13-apparatus-checker/upload/main)
 
 ## Changelog
+
+### 1.7.5 (2026-11-24)
+
+- A check sent to the server always carries the day as YYYY-MM-DD. If a saved day is in any other form, it is rebuilt from the check time when sent. Saved records are not changed, so checks already stuck on a phone are sent again with the correct day.
+- Refused checks show the day stored and the day sent in Copy error details.
+- When the shared copy does not keep an answer, the red bar names the answer, the unit, the check and the day.
 
 ### 1.7.4 (2026-11-24)
 
