@@ -2,7 +2,7 @@
 
 Daily apparatus check app for Clark County Fire District 13.
 
-**Version 1.7.3 (2026-11-24)**
+**Version 1.7.4 (2026-11-24)**
 
 ## Links
 
@@ -11,6 +11,12 @@ Daily apparatus check app for Clark County Fire District 13.
 - Upload: [https://github.com/emaildougb/FD13-apparatus-checker/upload/main](https://github.com/emaildougb/FD13-apparatus-checker/upload/main)
 
 ## Changelog
+
+### 1.7.4 (2026-11-24)
+
+- When the server refuses a finished check with a 400, the red bar now shows the server's own reason (the first 300 characters of its reply), so Copy error details can report it. Before, the reason was blank.
+- A check refused with a 400 is no longer re-sent every 15 seconds. It stays on the phone, unchanged, and is tried once more when the app is reopened. Nothing is deleted.
+- Other failures (no connection, other server errors) still retry as before, now with the server's reply in the details.
 
 ### 1.7.3 (2026-11-24)
 

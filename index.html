@@ -252,7 +252,7 @@ h3{font-size:17px;font-weight:600;margin:0 0 8px}
    for a normal rollout.
    ========================================================= */
 const CONFIG = {
-  version: '1.7.3',
+  version: '1.7.4',
   versionDate: '2026-11-24',
   // Shared layout Worker (North Country Cloudflare, workers.dev). Reads are public; admin writes need a Microsoft ID token.
   worker: 'https://fd13-apparatus.d-boyce.workers.dev',
@@ -1748,8 +1748,10 @@ async function submitCheck(){
 
 // 1.6.3: send finished checks to the FD13 Worker (the Hub and CG Staff read from there).
 // A check that cannot be sent (no signal) stays in history with sent:false and is retried every 15 seconds.
+// 1.7.4: checks the server refused with a 400. They stay on this phone, unchanged, and are not sent again until the app is reopened.
+const REFUSED = new Set();
 async function flushUnsent(){
-  const todo = S.history.filter(h => h.sent !== true).slice(0, 20);
+  const todo = S.history.filter(h => h.sent !== true && !REFUSED.has(h.id)).slice(0, 20);
   let changed = false;
   for (const h of todo){
     try {
@@ -1758,7 +1760,17 @@ async function flushUnsent(){
         body: JSON.stringify({ id: h.id, day: h.day, ts: h.ts, apId: h.apId, apName: h.apName, chk: h.chk, chkName: h.chkName, by: h.by, total: h.total, fails: h.fails })
       });
       if (res.ok) { h.sent = true; changed = true; }
-      else reportProblem('check', `${h.apName} ${h.chkName} did not reach the crew board (server status ${res.status}). It is kept on this phone and will be sent again. Tap Copy error details and report it.`);
+      else {
+        // 1.7.4: keep the server's own reason so it shows in Copy error details
+        const text = await res.text().catch(() => '');
+        const detail = 'server status ' + res.status + (text ? ': ' + text.slice(0, 300) : ' (no response body)');
+        if (res.status === 400) {
+          REFUSED.add(h.id);
+          reportProblem('check', `${h.apName} ${h.chkName} was refused by the server (400). It is kept on this phone unchanged and is not sent again until the app is reopened. Tap Copy error details and report it.`, detail);
+        } else {
+          reportProblem('check', `${h.apName} ${h.chkName} did not reach the crew board (server status ${res.status}). It is kept on this phone and will be sent again. Tap Copy error details and report it.`, detail);
+        }
+      }
     } catch (e) { reportProblem('check', `${h.apName} ${h.chkName} did not reach the crew board. Check the connection. It is kept on this phone and will be sent again.`, e); break; }
   }
   if (changed) savePersist();
