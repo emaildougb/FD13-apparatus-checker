@@ -252,7 +252,7 @@ h3{font-size:17px;font-weight:600;margin:0 0 8px}
    for a normal rollout.
    ========================================================= */
 const CONFIG = {
-  version: '1.7.2',
+  version: '1.7.3',
   versionDate: '2026-11-24',
   // Shared layout Worker (North Country Cloudflare, workers.dev). Reads are public; admin writes need a Microsoft ID token.
   worker: 'https://fd13-apparatus.d-boyce.workers.dev',
@@ -691,7 +691,18 @@ async function loadSharedLayout(){
     if (!res.ok) return false;
     const body = await res.json();
     sharedReady = true;
-    if (!body || !body.state) return true;
+    if (!body || !body.state) {
+      // 1.7.3: the Worker has no shared layout yet, so this phone's pending seed change is applied now.
+      if (S.seedPending) {
+        S.stOrder = JSON.parse(JSON.stringify(SEED.stOrder));
+        S.chkOrder = JSON.parse(JSON.stringify(SEED.chkOrder));
+        S.zones = JSON.parse(JSON.stringify(SEED.zones));
+        S.seedPending = false;
+        savePersist();
+      }
+      return true;
+    }
+    S.seedPending = false;
     LAYOUT_FIELDS.forEach(k => { if (body.state[k] !== undefined) S[k] = body.state[k]; });
     lastPushed = layoutJSON();
     savePersist();
@@ -862,10 +873,16 @@ function load(){
   try { base.photos = JSON.parse(localStorage.getItem(CONFIG.storageKey + '_photos') || '{}') || {}; } catch(e) { base.photos = {}; }
   try { base.photoLinks = JSON.parse(localStorage.getItem(CONFIG.storageKey + '_photos' + 'links') || '{}') || {}; } catch(e) { base.photoLinks = {}; }
   // Layout seed: when this device's saved layout is from an older seed, take the built-in layout.
+  // 1.7.3: a phone that already has its own layout keeps it. The shared copy replaces it when the Worker answers,
+  // and SEED is applied only if the Worker has no shared layout at all (see loadSharedLayout).
   if (!o || o.seedVersion !== CONFIG.seedVersion) {
-    base.stOrder = JSON.parse(JSON.stringify(SEED.stOrder));
-    base.chkOrder = JSON.parse(JSON.stringify(SEED.chkOrder));
-    base.zones = JSON.parse(JSON.stringify(SEED.zones));
+    if (!o || !o.stOrder || !o.chkOrder || !o.zones) {
+      base.stOrder = JSON.parse(JSON.stringify(SEED.stOrder));
+      base.chkOrder = JSON.parse(JSON.stringify(SEED.chkOrder));
+      base.zones = JSON.parse(JSON.stringify(SEED.zones));
+    } else {
+      base.seedPending = true;
+    }
   }
   return base;
 }

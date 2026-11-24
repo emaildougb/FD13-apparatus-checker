@@ -2,7 +2,7 @@
 
 Daily apparatus check app for Clark County Fire District 13.
 
-**Version 1.7.2 (2026-11-24)**
+**Version 1.7.3 (2026-11-24)**
 
 ## Links
 
@@ -11,6 +11,10 @@ Daily apparatus check app for Clark County Fire District 13.
 - Upload: [https://github.com/emaildougb/FD13-apparatus-checker/upload/main](https://github.com/emaildougb/FD13-apparatus-checker/upload/main)
 
 ## Changelog
+
+### 1.7.3 (2026-11-24)
+
+- A phone that already has its own saved layout keeps it when the built-in layout version changes. Before, the phone reset to the built-in layout and could lose admin edits that were not yet on the shared copy. The shared copy still replaces the layout whenever the Worker answers. The built-in layout is used only when the phone has no saved layout, or when the Worker has no shared layout at all.
 
 ### 1.7.2 (2026-11-24)
 
