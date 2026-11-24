@@ -252,7 +252,7 @@ h3{font-size:17px;font-weight:600;margin:0 0 8px}
    for a normal rollout.
    ========================================================= */
 const CONFIG = {
-  version: '1.7.5',
+  version: '1.7.8',
   versionDate: '2026-11-24',
   // Shared layout Worker (North Country Cloudflare, workers.dev). Reads are public; admin writes need a Microsoft ID token.
   worker: 'https://fd13-apparatus.d-boyce.workers.dev',
@@ -944,10 +944,12 @@ function chkStatus(apId, chk){
     : { k:'done', label:`Submitted ${clock(sub.ts)}, all normal` };
   return { k:'none', label:'Not started' };
 }
+// 1.7.6: the unit filters use the same rule as the summary card. Done means today's Pre Shift is submitted.
+// Abnormal is set by any tab with a fail. In progress is any tab started but not yet Done.
 function apStatus(apId){
   const sts = visibleTabs(apId).map(t => chkStatus(apId, t.id).k);
   if (sts.includes('fail')) return 'fail';
-  if (sts.every(s => s === 'done')) return 'done';
+  if (chkStatus(apId, 'preshift').k === 'done') return 'done';
   if (sts.some(s => s !== 'none')) return 'prog';
   return 'none';
 }
@@ -1063,17 +1065,27 @@ function rigTag(id){
   if (SCHED.weekly.includes(id)) return '<span class="tag">Weekly</span>';
   return '';
 }
+// 1.7.7: a unit with nothing started says when it is due, instead of "Not started"
+function dueWord(apId){
+  const day = todayKey(), sh = shiftOn(day), sid = SCHED.shiftRigs[sh];
+  if (SCHED.daily.includes(apId)) return 'Due today';
+  if (apId === sid) return 'Due today, ' + shiftTag(sh);
+  if (SCHED.weekly.includes(apId)) return 'Weekly, due by Sunday';
+  const other = Object.keys(SCHED.shiftRigs).find(k => SCHED.shiftRigs[k] === apId);
+  return other ? 'Due on ' + shiftTag(other) : 'Not due today';
+}
 function unitCard(a, s, adm, idx, count){
   const holder = holderFor(a.id);
+  const word = s === 'none' ? dueWord(a.id) : STATUS_WORDS[s];
   const pill = s === 'fail' ? 'fail' : s === 'done' ? 'done' : s === 'prog' ? 'prog' : '';
   return `<article class="unit" data-id="${a.id}">
     <div class="unit-row">
-      <button class="unit-main" data-act="open-ap" data-id="${a.id}" aria-label="${esc(a.name)}, ${esc(STATUS_WORDS[s])}">
+      <button class="unit-main" data-act="open-ap" data-id="${a.id}" aria-label="${esc(a.name)}, ${esc(word.replace(/<[^>]+>/g, ''))}">
         <span class="unit-name">${esc(a.name)} ${rigTag(a.id)}</span>
         <span class="unit-info">${esc(a.info || '')}</span>
         ${holder ? `<span class="unit-who">${esc(holder.by)} is checking this unit now</span>` : ''}
       </button>
-      <div class="unit-side"><span class="status ${pill}">${STATUS_WORDS[s]}</span><span class="chev" aria-hidden="true">&#8250;</span></div>
+      <div class="unit-side"><span class="status ${pill}">${word}</span><span class="chev" aria-hidden="true">&#8250;</span></div>
     </div>
     <div class="unit-foot">
       ${adm ? `<div class="edit-row">

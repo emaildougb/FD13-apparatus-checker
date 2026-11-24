@@ -2,7 +2,7 @@
 
 Daily apparatus check app for Clark County Fire District 13.
 
-**Version 1.7.5 (2026-11-24)**
+**Version 1.7.8 (2026-11-24)**
 
 ## Links
 
@@ -11,6 +11,19 @@ Daily apparatus check app for Clark County Fire District 13.
 - Upload: [https://github.com/emaildougb/FD13-apparatus-checker/upload/main](https://github.com/emaildougb/FD13-apparatus-checker/upload/main)
 
 ## Changelog
+
+### 1.7.8 (2026-11-24)
+
+- The due label on a unit shows the shift as the same colored pill used elsewhere in the app.
+
+### 1.7.7 (2026-11-24)
+
+- A unit with nothing started shows when it is due instead of "Not started": "Due today", "Due today" with the shift pill, "Due on" with the shift pill (in the shift color), "Weekly, due by Sunday", or "Not due today".
+
+### 1.7.6 (2026-11-24)
+
+- The Apparatus filters now agree with the summary card. A unit is Done when its Pre Shift is submitted today, even if its Monthly or Weekly tab is not finished. Before, a unit with those tabs unfinished stayed In progress, so the card and the filters disagreed.
+- A unit with any abnormal item still shows under Abnormal.
 
 ### 1.7.5 (2026-11-24)
 
