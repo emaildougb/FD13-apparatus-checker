@@ -2,7 +2,7 @@
 
 Daily apparatus check app for Clark County Fire District 13.
 
-**Version 1.7.8 (2026-11-24)**
+**Version 1.7.9 (2026-11-24)**
 
 ## Links
 
@@ -11,6 +11,11 @@ Daily apparatus check app for Clark County Fire District 13.
 - Upload: [https://github.com/emaildougb/FD13-apparatus-checker/upload/main](https://github.com/emaildougb/FD13-apparatus-checker/upload/main)
 
 ## Changelog
+
+### 1.7.9 (2026-11-24)
+
+- After a check is saved, the app reads the shared copy back from the server. "Shared with the crew" shows only when the checklist answers are really on the server. Until then the sync line says the crew copy has not confirmed the answers yet, and the red bar names the answers that are missing.
+- Answers are sent in full with each save, so answers already on a phone are sent again on the next save. Nothing is lost on the phone.
 
 ### 1.7.8 (2026-11-24)
 

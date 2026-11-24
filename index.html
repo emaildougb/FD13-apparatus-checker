@@ -252,7 +252,7 @@ h3{font-size:17px;font-weight:600;margin:0 0 8px}
    for a normal rollout.
    ========================================================= */
 const CONFIG = {
-  version: '1.7.8',
+  version: '1.7.9',
   versionDate: '2026-11-24',
   // Shared layout Worker (North Country Cloudflare, workers.dev). Reads are public; admin writes need a Microsoft ID token.
   worker: 'https://fd13-apparatus.d-boyce.workers.dev',
@@ -742,7 +742,7 @@ async function pushSharedLayout(){
    Each open check and each unit's vehicle values are one shared copy per day.
    Answers merge item by item: the newer answer for an item wins. A check is
    "claimed" by whoever touched it last, so the other phone sees who is on it. */
-const SHARE = { ok: null, at: 0 };        // ok: true when the last shared call worked, false when it failed, null before any call
+const SHARE = { ok: null, at: 0, confirmed: false };        // ok: true when the last shared call worked, false when it failed, null before any call
 const HOLDERS = {};                       // 'apId|chk' -> { by, ts } claim from the shared copy
 let pullTimer = null;
 const pushTimers = {};
@@ -765,7 +765,8 @@ function syncText(){
   const saved = S.savedAt ? clock(S.savedAt) : '';
   if (!CONFIG.worker) return `Saved on this phone${saved ? ' at ' + saved : ''}.`;
   if (SHARE.ok === false) return `Saved on this phone${saved ? ' at ' + saved : ''}. The shared copy is not reachable right now, so the crew cannot see this yet.`;
-  if (SHARE.ok === true) return `Saved${saved ? ' at ' + saved : ''} and shared with the crew.`;
+  if (SHARE.ok === true && SHARE.confirmed) return `Saved${saved ? ' at ' + saved : ''} and shared with the crew.`;
+  if (SHARE.ok === true) return `Saved on this phone${saved ? ' at ' + saved : ''}. The crew copy has not confirmed these answers yet.`;
   return `Saved on this phone${saved ? ' at ' + saved : ''}.`;
 }
 
@@ -803,13 +804,29 @@ async function pushNow(apId, chk){
     if (!res.ok) throw new Error('status ' + res.status);
     const out = await res.json();
     setSyncState(true);
-    // 1.7.2: answers on this phone that the shared copy did not keep
-    const kept = (out.doc && out.doc.ans) || {};
-    const lost = Object.keys(d.ans).filter(k => d.ans[k] && d.ans[k].v && !kept[k]);
-    if (lost.length) reportProblem('kept', `The shared copy did not keep ${lost.length} ${lost.length === 1 ? 'answer' : 'answers'} from this phone. Tap Copy error details and report it.`, 'items: ' + lost.join(', ') + ' | key ' + body.key);
-    else clearProblem('kept');
+    // 1.7.9: re-read the shared copy after saving. "Shared with the crew" shows only when the answers are really there.
+    const srvAns = await confirmedAnswers(body.key);
+    if (srvAns === null) { SHARE.confirmed = false; }
+    else {
+      const lost = Object.keys(d.ans).filter(k => d.ans[k] && d.ans[k].v && !srvAns[k]);
+      SHARE.confirmed = lost.length === 0;
+      if (lost.length) reportProblem('kept', `The shared copy did not keep ${lost.length} ${lost.length === 1 ? 'answer' : 'answers'} from this phone. Tap Copy error details and report it.`, 'items: ' + lost.join(', ') + ' | key ' + body.key);
+      else clearProblem('kept');
+    }
+    const el = document.querySelector('[data-sync]');
+    if (el) el.textContent = syncText();
     applyDoc(body.key, out.doc, true);
   } catch(e) { setSyncState(false); }
+}
+// 1.7.9: the answers the shared copy holds for one check today, read back from the server. null if the read fails.
+async function confirmedAnswers(key){
+  try {
+    const res = await fetch(CONFIG.worker + '/progress?day=' + dutyDay(), { cache: 'no-store' });
+    if (!res.ok) return null;
+    const body = await res.json();
+    const doc = body.docs && body.docs[key];
+    return (doc && doc.ans) || {};
+  } catch(e) { return null; }
 }
 // Merge a shared copy into this device. Never saves back to the Worker from here, so there is no loop.
 function applyDoc(key, doc, fromPush){
