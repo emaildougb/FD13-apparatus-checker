@@ -252,7 +252,7 @@ h3{font-size:17px;font-weight:600;margin:0 0 8px}
    for a normal rollout.
    ========================================================= */
 const CONFIG = {
-  version: '1.7.12',
+  version: '1.7.13',
   versionDate: '2026-11-24',
   // Shared layout Worker (North Country Cloudflare, workers.dev). Reads are public; admin writes need a Microsoft ID token.
   worker: 'https://fd13-apparatus.d-boyce.workers.dev',
@@ -845,6 +845,31 @@ function applyDoc(key, doc, fromPush){
 }
 // 1.7.10: finished checks from the server for this week, so every device sees what any phone submitted.
 let FINISHED = [];
+// 1.7.13: the shared open-problem list from the server (GET /problems). Null until the first read.
+let SHARED_PROBS = null;
+async function pullProblems(){
+  if (!CONFIG.worker) return;
+  try {
+    const res = await fetch(CONFIG.worker + '/problems', { cache: 'no-store' });
+    if (!res.ok) return;
+    const body = await res.json();
+    const next = body.problems || [];
+    if (JSON.stringify(next) !== JSON.stringify(SHARED_PROBS)) { SHARED_PROBS = next; refreshIfIdle(); }
+  } catch(e) { /* keep the last list */ }
+}
+// 1.7.13: Now fixed or Still broken on a shared problem, saved to the server
+async function sharedAct(key, action){
+  const p = (SHARED_PROBS || []).find(x => x.key === key);
+  if (!p) return;
+  try {
+    const res = await fetch(CONFIG.worker + '/problem', { method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ apId: p.apId, label: p.label, action, by: live() || 'crew' }) });
+    if (!res.ok) throw new Error('status ' + res.status);
+    toast(action === 'fixed' ? 'Marked fixed.' : 'Marked still broken.');
+  } catch(e) { toast('Could not save. Check the connection and try again.'); }
+  await pullProblems();
+  render();
+}
 async function pullFinished(){
   if (!CONFIG.worker || !S.user) return;
   try {
@@ -859,6 +884,7 @@ async function pullFinished(){
 async function pullDay(){
   if (!CONFIG.worker || !S.user) return;
   pullFinished();
+  pullProblems();
   try {
     const res = await fetch(CONFIG.worker + '/progress?day=' + dutyDay(), { cache: 'no-store' });
     if (!res.ok) throw new Error('status ' + res.status);
@@ -1043,7 +1069,7 @@ window.addEventListener('popstate', e => {
 /* =========================================================
    SHELL AND VIEWS
    ========================================================= */
-function openCount(){ return S.problems.filter(p => p.status === 'open').length; }
+function openCount(){ return SHARED_PROBS ? SHARED_PROBS.length : S.problems.filter(p => p.status === 'open').length; }
 
 function shell(main){
   const u = S.user;
@@ -1451,7 +1477,8 @@ function viewCheck(){
 }
 
 function viewProblems(){
-  const open = S.problems.filter(p => p.status === 'open').sort((x, y) => y.ts - x.ts);
+  const shared = (SHARED_PROBS || []).map(p => ({ id: p.key, shared: true, label: p.label, apName: p.apName, note: p.note, by: p.by, ts: p.openedAt, kind: 'check', status: 'open' }));
+  const open = shared.length || !SHARED_PROBS ? shared : S.problems.filter(p => p.status === 'open').sort((x, y) => y.ts - x.ts);
   const done = S.problems.filter(p => p.status !== 'open').sort((x, y) => y.ts - x.ts).slice(0, 15);
   const row = p => `<div class="problem">
       <div class="problem-top"><span><b style="font-weight:600">${esc(p.label)}</b> <span class="muted">${esc(p.apName)}</span></span>
@@ -1460,7 +1487,9 @@ function viewProblems(){
       <div class="who">${esc(p.by)}, ${esc(when(p.ts))}${p.status !== 'open' ? `. ${p.status === 'fixed' ? 'Marked fixed' : 'Closed'} by ${esc(p.closedBy || '')}` : ''}</div>
       <div class="problem-actions">
         ${p.status === 'open'
-          ? `${p.kind === 'check' ? `<button class="btn-second" data-act="prob-broken" data-id="${p.id}">Still broken</button>` : ''}<button class="btn-second" data-act="prob-fixed" data-id="${p.id}">Now fixed</button>`
+          ? (p.shared
+            ? `<button class="btn-second" data-act="shared-broken" data-id="${esc(p.id)}">Still broken</button><button class="btn-second" data-act="shared-fixed" data-id="${esc(p.id)}">Now fixed</button>`
+            : `${p.kind === 'check' ? `<button class="btn-second" data-act="prob-broken" data-id="${p.id}">Still broken</button>` : ''}<button class="btn-second" data-act="prob-fixed" data-id="${p.id}">Now fixed</button>`)
           : `<button class="btn-second" data-act="prob-reopen" data-id="${p.id}">Reopen</button>`}
       </div>
     </div>`;
@@ -2110,6 +2139,8 @@ document.addEventListener('click', e => {
       return;
     }
     case 'prob-broken': problemBroken(id); break;
+    case 'shared-fixed': sharedAct(el.dataset.id, 'fixed'); return;
+    case 'shared-broken': sharedAct(el.dataset.id, 'broken'); return;
     case 'prob-fixed': problemClose(id, 'fixed'); break;
     case 'prob-reopen': { const p = S.problems.find(x => x.id === id); if (p) { p.status = 'open'; } break; }
     case 'toggle-admin': if (S.user && S.user.admin) S.adminMode = !S.adminMode; break;
