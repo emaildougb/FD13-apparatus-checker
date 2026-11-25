@@ -252,7 +252,7 @@ h3{font-size:17px;font-weight:600;margin:0 0 8px}
    for a normal rollout.
    ========================================================= */
 const CONFIG = {
-  version: '1.7.9',
+  version: '1.7.10',
   versionDate: '2026-11-24',
   // Shared layout Worker (North Country Cloudflare, workers.dev). Reads are public; admin writes need a Microsoft ID token.
   worker: 'https://fd13-apparatus.d-boyce.workers.dev',
@@ -843,8 +843,22 @@ function applyDoc(key, doc, fromPush){
   if (changed && !fromPush) refreshIfIdle();
   return changed;
 }
+// 1.7.10: finished checks from the server for this week, so every device sees what any phone submitted.
+let FINISHED = [];
+async function pullFinished(){
+  if (!CONFIG.worker || !S.user) return;
+  try {
+    const wk = weekRange(dutyDay());
+    const res = await fetch(CONFIG.worker + '/checks?from=' + wk.from + '&to=' + wk.to, { cache: 'no-store' });
+    if (!res.ok) return;
+    const body = await res.json();
+    const next = body.checks || [];
+    if (JSON.stringify(next) !== JSON.stringify(FINISHED)) { FINISHED = next; refreshIfIdle(); }
+  } catch(e) { /* the card and filters keep what they had */ }
+}
 async function pullDay(){
   if (!CONFIG.worker || !S.user) return;
+  pullFinished();
   try {
     const res = await fetch(CONFIG.worker + '/progress?day=' + dutyDay(), { cache: 'no-store' });
     if (!res.ok) throw new Error('status ' + res.status);
@@ -953,12 +967,18 @@ function answeredCount(apId, chk){
 }
 function chkStatus(apId, chk){
   const items = getZones(apId, chk).flatMap(z => z.items);
+  // 1.7.10: a submitted check counts first, whether it was submitted on this phone or another one
+  const sub = S.history.find(h => h.day === todayKey() && h.apId === apId && h.chk === chk);
+  const srv = FINISHED.find(c => c.day === todayKey() && c.apId === apId && c.chk === chk);
+  if (sub || srv) {
+    const fails = sub ? sub.fails.length : srv.failCount;
+    const at = sub ? sub.ts : srv.ts;
+    return fails
+      ? { k:'fail', label:`Submitted ${clock(at)}, ${fails} abnormal` }
+      : { k:'done', label:`Submitted ${clock(at)}, all normal` };
+  }
   const n = answeredCount(apId, chk);
   if (n) return { k:'prog', label:`In progress, ${n} of ${items.length} answered` };
-  const sub = S.history.find(h => h.day === todayKey() && h.apId === apId && h.chk === chk);
-  if (sub) return sub.fails.length
-    ? { k:'fail', label:`Submitted ${clock(sub.ts)}, ${sub.fails.length} abnormal` }
-    : { k:'done', label:`Submitted ${clock(sub.ts)}, all normal` };
   return { k:'none', label:'Not started' };
 }
 // 1.7.6: the unit filters use the same rule as the summary card. Done means today's Pre Shift is submitted.
@@ -1148,7 +1168,8 @@ function weekRange(day){
   return { from: iso(mon), to: iso(sun) };
 }
 function completedOn(apId, from, to){
-  return S.history.some(h => h.apId === apId && h.chk === 'preshift' && h.day >= from && h.day <= to);
+  return S.history.some(h => h.apId === apId && h.chk === 'preshift' && h.day >= from && h.day <= to)
+    || FINISHED.some(c => c.apId === apId && c.chk === 'preshift' && c.day >= from && c.day <= to);
 }
 function isSunday(day){
   const [y, m, d] = day.split('-').map(Number);
@@ -1759,7 +1780,7 @@ async function submitCheck(){
       .forEach(p => { p.status = 'fixed'; p.closedBy = live(); p.closedAt = Date.now(); });
   });
   const key = dk(S.apId, S.chk);
-  deleteShared(S.apId, S.chk);
+  // 1.7.10: the shared copy is kept after submit (not deleted), so the answers stay on the server for the day.
   delete S.drafts[key];
   if (S.photos[key]) delete S.photos[key];
   if (S.photoLinks[key]) delete S.photoLinks[key];

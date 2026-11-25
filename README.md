@@ -2,7 +2,7 @@
 
 Daily apparatus check app for Clark County Fire District 13.
 
-**Version 1.7.9 (2026-11-24)**
+**Version 1.7.10 (2026-11-24)**
 
 ## Links
 
@@ -11,6 +11,12 @@ Daily apparatus check app for Clark County Fire District 13.
 - Upload: [https://github.com/emaildougb/FD13-apparatus-checker/upload/main](https://github.com/emaildougb/FD13-apparatus-checker/upload/main)
 
 ## Changelog
+
+### 1.7.10 (2026-11-24)
+
+- The shared copy of a check is kept after it is submitted, instead of being deleted. The full answer list stays on the server for the day, and the 3-day cleanup removes it later.
+- Finished checks are read from the server for the week, so the card, the filters and the Done count agree on every device, not only the one that did the check. A check submitted on any phone counts as Done (or Abnormal, if it had a fail).
+- Needs Worker 1.3.2 (new GET /checks route). Until that is deployed, this device shows only its own submitted checks, as before.
 
 ### 1.7.9 (2026-11-24)
 
