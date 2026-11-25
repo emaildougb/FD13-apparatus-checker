@@ -252,8 +252,8 @@ h3{font-size:17px;font-weight:600;margin:0 0 8px}
    for a normal rollout.
    ========================================================= */
 const CONFIG = {
-  version: '1.7.14',
-  versionDate: '2026-11-24',
+  version: '1.7.15',
+  versionDate: '2026-11-25',
   // Shared layout Worker (North Country Cloudflare, workers.dev). Reads are public; admin writes need a Microsoft ID token.
   worker: 'https://fd13-apparatus.d-boyce.workers.dev',
   // Bump seedVersion whenever the built-in layout (SEED) changes. Devices re-apply SEED once per bump.
@@ -1586,12 +1586,13 @@ function sheetHTML(){
       // 1.7.14: pick the unit first, then its compartment and item. "Other" takes a typed name.
       title = 'Report a problem';
       const zones = sh.apId ? getZones(sh.apId, 'preshift') : [];
-      const itemOpts = zones.map(z => `<optgroup label="${esc(z.name)}">${z.items.map(i => `<option value="${esc(z.name)}|||${esc(i.name)}">${esc(i.name)}</option>`).join('')}</optgroup>`).join('');
+      const itemOpts = zones.map(z => `<optgroup label="${esc(z.name)}">${z.items.map(i => `<option value="${esc(z.name)}|||${esc(i.name)}" ${sh.item === z.name + '|||' + i.name ? 'selected' : ''}>${esc(i.name)}</option>`).join('')}</optgroup>`).join('');
       body = `<label for="rap">Which unit</label><select id="rap"><option value="">Choose a unit</option>
         ${ALL_APS().map(a => `<option value="${a.id}" ${sh.apId === a.id ? 'selected' : ''}>${esc(AP(a.id).name)}</option>`).join('')}</select>
         ${sh.apId ? `<label for="ritem">Compartment and item</label><select id="ritem"><option value="">Choose the item</option>${itemOpts}</select>` : ''}
-        <label for="rother">Item name, only if it is not on the list</label><input id="rother" placeholder="Example: Scene light cord">
-        <label for="rtext">What is the problem?</label><textarea id="rtext" placeholder="Example: Brush 51 pump panel light is out."></textarea>`;
+        <label for="rother">Item name, only if it is not on the list</label><input id="rother" value="${esc(sh.other || '')}" placeholder="Example: Scene light cord">
+        <label for="rtext">What is the problem?</label><textarea id="rtext" placeholder="Example: Brush 51 pump panel light is out.">${esc(sh.text || '')}</textarea>
+        <div class="photo-row">${sh.photo ? `<img src="${sh.photo}" alt="Photo of the problem"><button class="link-btn" data-act="req-photo-remove">Remove photo</button>` : `<label class="photo-btn">Add photo<input class="sr" type="file" accept="image/*" capture="environment" id="rphoto"></label>`}</div>`;
       actions = cancel + '<button class="btn-primary" data-act="sheet-save">Send</button>';
       break;
     }
@@ -1847,6 +1848,42 @@ function buildReport(apId, chk, by, dateStr){
   return { text: lines.join('\n'), headline: fails.length ? `${fails.length} abnormal` : 'All normal', unable, fixed, fails, passed, total: items.length };
 }
 
+// 1.7.15: the Report a problem sheet keeps what was typed when it redraws (unit change, photo added or removed)
+function keepRequestDraft(){
+  const sh = S.sheet;
+  if (!sh || sh.type !== 'request') return;
+  const val = id => (document.getElementById(id) || {}).value;
+  if (val('rtext') !== undefined) sh.text = val('rtext');
+  if (val('rother') !== undefined) sh.other = val('rother');
+  if (val('ritem') !== undefined) sh.item = val('ritem');
+}
+function addRequestPhoto(file){
+  if (!file || !S.sheet || S.sheet.type !== 'request') return;
+  keepRequestDraft();
+  const reader = new FileReader();
+  reader.onload = () => {
+    const img = new Image();
+    img.onload = () => {
+      const max = 900, scale = Math.min(1, max / Math.max(img.width, img.height));
+      const c = document.createElement('canvas');
+      c.width = Math.round(img.width * scale); c.height = Math.round(img.height * scale);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      if (S.sheet && S.sheet.type === 'request') { S.sheet.photo = c.toDataURL('image/jpeg', 0.7); render(); }
+    };
+    img.src = reader.result;
+  };
+  reader.readAsDataURL(file);
+}
+// 1.7.15: sends the problem with its photo (uploaded to the Worker photo store), with the photo link added to the note
+async function finishRequest(ap, zone, label, text, photo){
+  let note = text || '';
+  if (photo) {
+    try { const url = await uploadPhoto(photo, ap, label); note = (note ? note + '\n\n' : '') + 'Photo: ' + url; }
+    catch (e) { note = (note ? note + '\n\n' : '') + 'Photo did not upload.'; }
+  }
+  sendRequest(ap, zone, label, note);
+}
+
 async function sendEmail(subject, text){
   const e = CONFIG.emailjs;
   if (!e.publicKey || !e.serviceId || !e.templateId || !window.emailjs) return false;
@@ -1947,8 +1984,9 @@ function sheetSave(){
       if (pick) { const cut = pick.indexOf('|||'); zone = pick.slice(0, cut); label = pick.slice(cut + 3); }
       else if (other) { zone = 'Other'; label = other; }
       else { toast('Choose the item, or type its name.'); return; }
+      const photo = sh.photo;
       S.sheet = null;
-      sendRequest(ap, zone, label, text);
+      finishRequest(ap, zone, label, text, photo);
       break;
     }
     case 'add-ap': {
@@ -2158,6 +2196,7 @@ document.addEventListener('click', e => {
       else toast('Select the text and copy it.');
       return;
     }
+    case 'req-photo-remove': keepRequestDraft(); if (S.sheet) S.sheet.photo = null; break;
     case 'prob-broken': problemBroken(id); break;
     case 'shared-fixed': sharedAct(el.dataset.id, 'fixed'); return;
     case 'shared-broken': sharedAct(el.dataset.id, 'broken'); return;
@@ -2246,7 +2285,7 @@ document.addEventListener('click', e => {
 
 document.addEventListener('input', e => {
   const t = e.target;
-  if (t.id === 'rap' && S.sheet && S.sheet.type === 'request') { S.sheet.apId = t.value; render(); return; }
+  if (t.id === 'rap' && S.sheet && S.sheet.type === 'request') { keepRequestDraft(); S.sheet.apId = t.value; render(); return; }
   if (t.dataset && t.dataset.hist) { S.histFilter = { ...(S.histFilter || {}), [t.dataset.hist === 'unit' ? 'unit' : 'type']: t.value }; render(); return; }
   if (t.dataset && t.dataset.note) {
     setNote(t.dataset.note, t.value);
@@ -2263,6 +2302,7 @@ document.addEventListener('input', e => {
 // Keep the hint and submit state current when a note is finished.
 document.addEventListener('change', e => {
   const t = e.target;
+  if (t.id === 'rphoto') { addRequestPhoto(t.files && t.files[0]); return; }
   if (t.dataset && t.dataset.note) { setTimeout(render, 0); return; }
   if (t.dataset && t.dataset.photo) { addPhoto(t.dataset.photo, t.files && t.files[0]); }
 });
