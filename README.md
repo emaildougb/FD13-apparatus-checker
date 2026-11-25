@@ -2,7 +2,7 @@
 
 Daily apparatus check app for Clark County Fire District 13.
 
-**Version 1.7.13 (2026-11-25)**
+**Version 1.7.14 (2026-11-25)**
 
 ## Links
 
@@ -12,10 +12,14 @@ Daily apparatus check app for Clark County Fire District 13.
 
 ## Changelog
 
+### 1.7.14 (2026-11-25)
+
+- Report a problem now asks for the unit, then the compartment and item from that unit's checklist, or a typed name if the item is not listed. The problem goes to the shared Open problems list on the server. Needs Worker 1.7.
+- Photos on this form are not added yet.
+
 ### 1.7.13 (2026-11-25)
 
 - The Open problems tab and the count in its tab now read the shared problem list from the server (Worker 1.5 or later), so a problem reported on any phone shows here, and Now fixed or Still broken saves to the server.
-- Reporting a new problem from this tab still saves on this phone only for now; a server route for that comes next.
 
 ### 1.7.12 (2026-11-25)
 

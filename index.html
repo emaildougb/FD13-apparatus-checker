@@ -252,7 +252,7 @@ h3{font-size:17px;font-weight:600;margin:0 0 8px}
    for a normal rollout.
    ========================================================= */
 const CONFIG = {
-  version: '1.7.13',
+  version: '1.7.14',
   versionDate: '2026-11-24',
   // Shared layout Worker (North Country Cloudflare, workers.dev). Reads are public; admin writes need a Microsoft ID token.
   worker: 'https://fd13-apparatus.d-boyce.workers.dev',
@@ -856,6 +856,17 @@ async function pullProblems(){
     const next = body.problems || [];
     if (JSON.stringify(next) !== JSON.stringify(SHARED_PROBS)) { SHARED_PROBS = next; refreshIfIdle(); }
   } catch(e) { /* keep the last list */ }
+}
+// 1.7.14: a new problem from the Report a problem form, saved to the server
+async function sendRequest(apId, zone, label, note){
+  try {
+    const res = await fetch(CONFIG.worker + '/problem', { method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ action: 'open', apId, apName: AP(apId).name, zone, label, chk: 'preshift', note: note || '', by: live() || 'crew' }) });
+    if (!res.ok) throw new Error('status ' + res.status);
+    toast('Problem sent to the Open problems list.');
+  } catch(e) { toast('Could not send. Check the connection and try again.'); }
+  await pullProblems();
+  render();
 }
 // 1.7.13: Now fixed or Still broken on a shared problem, saved to the server
 async function sharedAct(key, action){
@@ -1572,9 +1583,14 @@ function sheetHTML(){
       break;
     }
     case 'request': {
+      // 1.7.14: pick the unit first, then its compartment and item. "Other" takes a typed name.
       title = 'Report a problem';
-      body = `<label for="rap">Which unit</label><select id="rap"><option value="">General or station</option>
+      const zones = sh.apId ? getZones(sh.apId, 'preshift') : [];
+      const itemOpts = zones.map(z => `<optgroup label="${esc(z.name)}">${z.items.map(i => `<option value="${esc(z.name)}|||${esc(i.name)}">${esc(i.name)}</option>`).join('')}</optgroup>`).join('');
+      body = `<label for="rap">Which unit</label><select id="rap"><option value="">Choose a unit</option>
         ${ALL_APS().map(a => `<option value="${a.id}" ${sh.apId === a.id ? 'selected' : ''}>${esc(AP(a.id).name)}</option>`).join('')}</select>
+        ${sh.apId ? `<label for="ritem">Compartment and item</label><select id="ritem"><option value="">Choose the item</option>${itemOpts}</select>` : ''}
+        <label for="rother">Item name, only if it is not on the list</label><input id="rother" placeholder="Example: Scene light cord">
         <label for="rtext">What is the problem?</label><textarea id="rtext" placeholder="Example: Brush 51 pump panel light is out."></textarea>`;
       actions = cancel + '<button class="btn-primary" data-act="sheet-save">Send</button>';
       break;
@@ -1922,13 +1938,17 @@ function sheetSave(){
   const v = id => ((document.getElementById(id) || {}).value || '').trim();
   switch (sh.type){
     case 'request': {
-      const text = v('rtext');
-      if (!text) return;
+      // 1.7.14: the problem goes to the shared list on the server
       const ap = v('rap');
-      const a = ap ? AP(ap) : null;
-      S.problems.unshift({ id: uid(), kind:'request', apId: a ? a.id : null, apName: a ? a.name : 'General', chk: null, key: null, label: 'Request', note: text, by: live(), ts: Date.now(), status:'open' });
+      if (!ap) { toast('Choose the unit first.'); return; }
+      const text = v('rtext');
+      const pick = v('ritem'), other = v('rother');
+      let zone, label;
+      if (pick) { const cut = pick.indexOf('|||'); zone = pick.slice(0, cut); label = pick.slice(cut + 3); }
+      else if (other) { zone = 'Other'; label = other; }
+      else { toast('Choose the item, or type its name.'); return; }
       S.sheet = null;
-      toast('Sent to the admins.');
+      sendRequest(ap, zone, label, text);
       break;
     }
     case 'add-ap': {
@@ -2226,6 +2246,7 @@ document.addEventListener('click', e => {
 
 document.addEventListener('input', e => {
   const t = e.target;
+  if (t.id === 'rap' && S.sheet && S.sheet.type === 'request') { S.sheet.apId = t.value; render(); return; }
   if (t.dataset && t.dataset.hist) { S.histFilter = { ...(S.histFilter || {}), [t.dataset.hist === 'unit' ? 'unit' : 'type']: t.value }; render(); return; }
   if (t.dataset && t.dataset.note) {
     setNote(t.dataset.note, t.value);
