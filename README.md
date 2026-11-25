@@ -2,7 +2,7 @@
 
 Daily apparatus check app for Clark County Fire District 13.
 
-**Version 1.7.10 (2026-11-24)**
+**Version 1.7.11 (2026-11-25)**
 
 ## Links
 
@@ -11,6 +11,10 @@ Daily apparatus check app for Clark County Fire District 13.
 - Upload: [https://github.com/emaildougb/FD13-apparatus-checker/upload/main](https://github.com/emaildougb/FD13-apparatus-checker/upload/main)
 
 ## Changelog
+
+### 1.7.11 (2026-11-25)
+
+- Old drafts saved with a non-standard date (for example "Wed Nov 11 2026") are removed from the phone when the app starts. They could never sync and caused the 400 error. Finished checks are not touched.
 
 ### 1.7.10 (2026-11-24)
 

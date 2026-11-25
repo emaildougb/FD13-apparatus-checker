@@ -252,7 +252,7 @@ h3{font-size:17px;font-weight:600;margin:0 0 8px}
    for a normal rollout.
    ========================================================= */
 const CONFIG = {
-  version: '1.7.10',
+  version: '1.7.11',
   versionDate: '2026-11-24',
   // Shared layout Worker (North Country Cloudflare, workers.dev). Reads are public; admin writes need a Microsoft ID token.
   worker: 'https://fd13-apparatus.d-boyce.workers.dev',
@@ -901,6 +901,11 @@ function load(){
     LOAD_NOTE = 'Saved data on this phone could not be read, so the app started fresh. A copy of the old data was kept on this phone. Tap Copy error details and report it.';
   }
   if (o) PERSIST.forEach(k => { if (o[k] !== undefined) base[k] = o[k]; });
+  // 1.7.11: drafts saved with an old date form (for example "Wed Nov 11 2026") are removed, since they can never sync.
+  // Check records in history are not touched.
+  const GOOD_KEY = /^\d{4}-\d{2}-\d{2}\|/;
+  if (base.drafts) Object.keys(base.drafts).forEach(k => { if (!GOOD_KEY.test(k)) delete base.drafts[k]; });
+  if (base.photos) Object.keys(base.photos).forEach(k => { if (!GOOD_KEY.test(k)) delete base.photos[k]; });
   try { base.photos = JSON.parse(localStorage.getItem(CONFIG.storageKey + '_photos') || '{}') || {}; } catch(e) { base.photos = {}; }
   try { base.photoLinks = JSON.parse(localStorage.getItem(CONFIG.storageKey + '_photos' + 'links') || '{}') || {}; } catch(e) { base.photoLinks = {}; }
   // Layout seed: when this device's saved layout is from an older seed, take the built-in layout.
