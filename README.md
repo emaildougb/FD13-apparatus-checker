@@ -2,7 +2,7 @@
 
 Daily apparatus check app for Clark County Fire District 13.
 
-**Version 1.7.11 (2026-11-25)**
+**Version 1.7.12 (2026-11-25)**
 
 ## Links
 
@@ -11,6 +11,11 @@ Daily apparatus check app for Clark County Fire District 13.
 - Upload: [https://github.com/emaildougb/FD13-apparatus-checker/upload/main](https://github.com/emaildougb/FD13-apparatus-checker/upload/main)
 
 ## Changelog
+
+### 1.7.12 (2026-11-25)
+
+- Every item's answer and note is saved with each finished check, so the full inspection record reaches the server. Needs Worker 1.4.
+- New History screen for admins (the History button appears for admins only). Shows the last 14 days of finished checks, newest first, one per unit, check and day. Filter by unit or check type. Tap a check to see every item's answer and note, with failures marked. Needs Microsoft sign-in.
 
 ### 1.7.11 (2026-11-25)
 

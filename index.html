@@ -252,7 +252,7 @@ h3{font-size:17px;font-weight:600;margin:0 0 8px}
    for a normal rollout.
    ========================================================= */
 const CONFIG = {
-  version: '1.7.11',
+  version: '1.7.12',
   versionDate: '2026-11-24',
   // Shared layout Worker (North Country Cloudflare, workers.dev). Reads are public; admin writes need a Microsoft ID token.
   worker: 'https://fd13-apparatus.d-boyce.workers.dev',
@@ -1059,6 +1059,7 @@ function shell(main){
     <nav class="tabs" aria-label="Main"><div class="tabs-in">
       <button class="${onApps ? 'on' : ''}" data-act="go" data-screen="aps" aria-current="${onApps}">Apparatus</button>
       <button class="${S.screen === 'problems' ? 'on' : ''}" data-act="go" data-screen="problems" aria-current="${S.screen === 'problems'}">Open problems${n ? ` <span class="count num">${n}</span>` : ''}</button>
+      ${u.admin ? `<button class="${S.screen === 'history' ? 'on' : ''}" data-act="go" data-screen="history" aria-current="${S.screen === 'history'}">History</button>` : ''}
       ${u.admin ? `<button class="edit-switch ${adm ? 'on' : ''}" data-act="toggle-admin" aria-pressed="${adm}">${adm ? 'Editing layout' : 'Edit layout'}</button>` : ''}
     </div></nav>
     </div>
@@ -1115,6 +1116,13 @@ function dueWord(apId){
   if (SCHED.weekly.includes(apId)) return 'Weekly, due by Sunday';
   const other = Object.keys(SCHED.shiftRigs).find(k => SCHED.shiftRigs[k] === apId);
   return other ? 'Due on ' + shiftTag(other) : 'Not due today';
+}
+// 1.7.12: every item's answer and note, saved with the finished check
+function itemsFor(apId, chk, d){
+  return getZones(apId, chk).flatMap(z => z.items.map(i => {
+    const a = d.ans[i.id] || {};
+    return { zone: z.name, item: i.name, v: a.v === 'pass' || a.v === 'fail' ? a.v : null, fix: a.fix || null, note: a.note || '' };
+  }));
 }
 function unitCard(a, s, adm, idx, count){
   const holder = holderFor(a.id);
@@ -1463,7 +1471,53 @@ function viewProblems(){
     ${done.length ? `<section class="pcard"><div class="pcard-head"><div><h2>Recently closed</h2></div></div>${done.map(row).join('')}</section>` : ''}`;
 }
 
-const VIEWS = { aps:viewAps, chks:viewChks, check:viewCheck, problems:viewProblems };
+const VIEWS = { aps:viewAps, chks:viewChks, check:viewCheck, problems:viewProblems, history:viewHistory };
+
+// 1.7.12: History, admins only. Reads /checks?detail=1 with the Microsoft sign-in token. Newest first, one per unit, check and day.
+let HIST = { rows: null, err: '' };
+const HIST_DAYS = 14;
+const kindOf = chk => chk === 'preshift' ? 'Daily' : chk === 'scba' ? 'Weekly' : chk === 'monthly' ? 'Monthly' : 'Other';
+async function loadHistory(){
+  if (!S.user || !S.user.admin) return;
+  HIST = { rows: null, err: '' };
+  render();
+  try {
+    const tok = await idToken();
+    if (!tok) throw new Error('Sign in with Microsoft to see History.');
+    const to = dutyDay();
+    const from = dutyDay(new Date(Date.now() - HIST_DAYS * 86400000));
+    const res = await fetch(CONFIG.worker + '/checks?from=' + from + '&to=' + to + '&detail=1', { cache: 'no-store', headers: { authorization: 'Bearer ' + tok } });
+    if (!res.ok) throw new Error('server status ' + res.status);
+    const body = await res.json();
+    HIST = { rows: body.checks || [], err: '' };
+  } catch(e) { HIST = { rows: null, err: 'History could not load. ' + e.message }; }
+  render();
+}
+function viewHistory(){
+  const f = S.histFilter || {};
+  const unitOpts = '<option value="">All units</option>' + ALL_APS().map(a => `<option value="${esc(a.id)}"${f.unit === a.id ? ' selected' : ''}>${esc(a.name)}</option>`).join('');
+  const typeOpts = ['', 'Daily', 'Weekly', 'Monthly'].map(t => `<option value="${t}"${f.type === t ? ' selected' : ''}>${t || 'All checks'}</option>`).join('');
+  let body;
+  if (HIST.err) body = `<p class="muted">${esc(HIST.err)}</p>`;
+  else if (!HIST.rows) body = '<p class="muted">Loading...</p>';
+  else {
+    const seen = new Set();
+    const rows = HIST.rows.filter(r => { const k = r.apId + '|' + r.chk + '|' + r.day; if (seen.has(k)) return false; seen.add(k); return true; })
+      .filter(r => (!f.unit || r.apId === f.unit) && (!f.type || kindOf(r.chk) === f.type));
+    body = rows.length ? rows.map(histRow).join('') : '<p class="muted">No checks match.</p>';
+  }
+  return pagehead(null, 'History', `Finished checks, last ${HIST_DAYS} days, newest first. Admins only.`) +
+    `<div class="chips"><label>Unit <select data-hist="unit">${unitOpts}</select></label> <label>Check <select data-hist="type">${typeOpts}</select></label></div>` +
+    `<div class="card-list">${body}</div>`;
+}
+function histRow(r){
+  const fails = (r.items || []).filter(i => i.v === 'fail');
+  const detail = (r.items || []).length
+    ? `<ul>${(r.items || []).map(i => `<li class="${i.v === 'fail' ? 'bad' : ''}"><b>${esc(i.zone)}: ${esc(i.item)}</b> ${i.v === 'fail' ? '(fail)' : i.v === 'pass' ? '(pass)' : '(no answer)'}${i.fix ? ' · ' + esc(i.fix) : ''}${i.note ? ' · ' + esc(i.note) : ''}</li>`).join('')}</ul>`
+    : '<p class="muted">No item answers saved for this check.</p>';
+  const failTxt = fails.length ? `${fails.length} failed` : (r.failCount ? `${r.failCount} abnormal` : 'all normal');
+  return `<details class="unit"><summary><b>${esc(AP(r.apId).name || r.apId)}</b> · ${esc(r.chkName || r.chk)} · ${esc(r.day)} ${esc(clock(r.ts))} · ${esc(r.by || '')} · ${esc(failTxt)}</summary>${detail}</details>`;
+}
 
 const CHECK_OPTIONS = () => CHK_LIST.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join('');
 
@@ -1772,7 +1826,7 @@ async function submitCheck(){
   const fails = rep.fails.map(x => ({
     zone: x.z.name, item: x.i.name, fix: d.ans[x.i.id].fix, note: d.ans[x.i.id].note || '', photo: photoMap[x.i.id] || ''
   }));
-  S.history.unshift({ id: uid(), day: todayKey(), ts: Date.now(), apId: a.id, apName: a.name, chk: S.chk, chkName, by: live(), total: rep.total, fails, sent: false });
+  S.history.unshift({ id: uid(), day: todayKey(), ts: Date.now(), apId: a.id, apName: a.name, chk: S.chk, chkName, by: live(), total: rep.total, fails, items: itemsFor(a.id, S.chk, d), sent: false });
   // Unable to fix goes to the open problems list. Repeats update the same record.
   fails.filter(f => f.fix === 'unable').forEach(f => {
     const existing = S.problems.find(p => p.status === 'open' && p.kind === 'check' && p.apId === a.id && p.label === f.item);
@@ -1814,7 +1868,7 @@ async function flushUnsent(){
     try {
       const res = await fetch(CONFIG.worker + '/check', {
         method: 'POST', headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ id: h.id, day: sendDay(h), ts: h.ts, apId: h.apId, apName: h.apName, chk: h.chk, chkName: h.chkName, by: h.by, total: h.total, fails: h.fails })
+        body: JSON.stringify({ id: h.id, day: sendDay(h), ts: h.ts, apId: h.apId, apName: h.apName, chk: h.chk, chkName: h.chkName, by: h.by, total: h.total, fails: h.fails, items: h.items || [] })
       });
       if (res.ok) { h.sent = true; changed = true; }
       else {
@@ -2019,7 +2073,7 @@ document.addEventListener('click', e => {
     case 'sheet-save': sheetSave(); break;
     case 'close': S.sheet = null; break;
     case 'signout': S.user = null; S.adminMode = false; S.screen = 'signin'; S.sheet = null; clearInterval(pullTimer); break;
-    case 'go': S.screen = el.dataset.screen; break;
+    case 'go': S.screen = el.dataset.screen; if (S.screen === 'history') { loadHistory(); return; } break;
     case 'back': S.sheet = null; S.screen = { check:'chks', chks:'aps' }[S.screen] || 'aps'; break;
     case 'filter': S.filter = id; break;
     case 'open-ap': S.apId = id; S.screen = 'chks'; break;
@@ -2141,6 +2195,7 @@ document.addEventListener('click', e => {
 
 document.addEventListener('input', e => {
   const t = e.target;
+  if (t.dataset && t.dataset.hist) { S.histFilter = { ...(S.histFilter || {}), [t.dataset.hist === 'unit' ? 'unit' : 'type']: t.value }; render(); return; }
   if (t.dataset && t.dataset.note) {
     setNote(t.dataset.note, t.value);
     savePersist();
