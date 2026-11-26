@@ -2,7 +2,7 @@
 
 Daily apparatus check app for Clark County Fire District 13.
 
-**Version 1.7.15 (2026-11-25)**
+**Version 1.7.16 (2026-11-26)**
 
 ## Links
 
@@ -11,6 +11,12 @@ Daily apparatus check app for Clark County Fire District 13.
 - Upload: [https://github.com/emaildougb/FD13-apparatus-checker/upload/main](https://github.com/emaildougb/FD13-apparatus-checker/upload/main)
 
 ## Changelog
+
+### 1.7.16 (2026-11-26)
+
+- History (admins) no longer shows the raw Microsoft error on iPhone Safari. When the background sign-in can't refresh, it says "Sign in with Microsoft again" with a button. The button opens the Microsoft sign-in page, and the app comes back to History after signing in.
+- The same message shows for the shared layout and check sharing when a background sign-in fails, instead of an error code.
+- History uses the same sign-in scope as the rest of the app. No change to permissions.
 
 ### 1.7.15 (2026-11-25)
 

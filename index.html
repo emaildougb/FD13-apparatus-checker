@@ -252,8 +252,8 @@ h3{font-size:17px;font-weight:600;margin:0 0 8px}
    for a normal rollout.
    ========================================================= */
 const CONFIG = {
-  version: '1.7.15',
-  versionDate: '2026-11-25',
+  version: '1.7.16',
+  versionDate: '2026-11-26',
   // Shared layout Worker (North Country Cloudflare, workers.dev). Reads are public; admin writes need a Microsoft ID token.
   worker: 'https://fd13-apparatus.d-boyce.workers.dev',
   // Bump seedVersion whenever the built-in layout (SEED) changes. Devices re-apply SEED once per bump.
@@ -709,13 +709,38 @@ async function loadSharedLayout(){
     return true;
   } catch(e) { return false; }
 }
+// 1.7.16: iPhone Safari often blocks the silent token refresh. That is reported as "sign in again" (with a button), not as a raw error.
 async function idToken(){
   const app = msalReady();
   if (!app) return null;
   const acc = app.getActiveAccount() || app.getAllAccounts()[0];
   if (!acc) return null;
-  const r = await app.acquireTokenSilent({ scopes: ['openid', 'profile', 'email'], account: acc });
-  return r.idToken || null;
+  try {
+    const r = await app.acquireTokenSilent({ scopes: ['openid', 'profile', 'email'], account: acc });
+    return r.idToken || null;
+  } catch (e) {
+    const code = String((e && (e.errorCode || e.name)) || '') + ' ' + String((e && e.message) || '');
+    if (/interaction_required|login_required|consent_required|no_tokens_found|InteractionRequired/i.test(code)) {
+      const err = new Error('Sign in with Microsoft again to see this.');
+      err.needsSignIn = true;
+      throw err;
+    }
+    throw e;
+  }
+}
+// 1.7.16: a tap starts the Microsoft sign-in page. Safari allows that; a background request it blocks.
+// The app remembers that History was open, so it comes back there after signing in.
+async function msalAgain(){
+  const app = msalReady();
+  if (!app) return;
+  try {
+    localStorage.setItem(CONFIG.storageKey + '_return', S.screen === 'history' ? 'history' : '');
+    const acc = app.getActiveAccount() || app.getAllAccounts()[0];
+    await app.loginRedirect({ scopes: ['openid', 'profile', 'email'], loginHint: acc ? acc.username : undefined });
+  } catch (err) {
+    S.msErr = 'Microsoft sign in did not complete. Try again.';
+    render();
+  }
 }
 // Admin changes go to the Worker. Staff and volunteers never write to it.
 async function pushSharedLayout(){
@@ -1530,7 +1555,7 @@ async function loadHistory(){
     if (!res.ok) throw new Error('server status ' + res.status);
     const body = await res.json();
     HIST = { rows: body.checks || [], err: '' };
-  } catch(e) { HIST = { rows: null, err: 'History could not load. ' + e.message }; }
+  } catch(e) { HIST = { rows: null, err: e.needsSignIn ? e.message : 'History could not load. ' + e.message, needsSignIn: !!e.needsSignIn }; }
   render();
 }
 function viewHistory(){
@@ -1538,7 +1563,7 @@ function viewHistory(){
   const unitOpts = '<option value="">All units</option>' + ALL_APS().map(a => `<option value="${esc(a.id)}"${f.unit === a.id ? ' selected' : ''}>${esc(a.name)}</option>`).join('');
   const typeOpts = ['', 'Daily', 'Weekly', 'Monthly'].map(t => `<option value="${t}"${f.type === t ? ' selected' : ''}>${t || 'All checks'}</option>`).join('');
   let body;
-  if (HIST.err) body = `<p class="muted">${esc(HIST.err)}</p>`;
+  if (HIST.err) body = `<p class="muted">${esc(HIST.err)}</p>${HIST.needsSignIn ? '<p><button class="btn-primary" data-act="ms-again">Sign in with Microsoft again</button></p>' : ''}`;
   else if (!HIST.rows) body = '<p class="muted">Loading...</p>';
   else {
     const seen = new Set();
@@ -2118,9 +2143,13 @@ function msalUser(acc){
   const admin = CONFIG.msal.adminEmails.map(x => x.toLowerCase()).includes(email);
   const person = ROSTER.find(p => p.email && p.email.toLowerCase() === email);
   signIn({ id: 'ms-' + email, name: person ? person.name : (acc.name || email), email, admin, ms: true });
+  const back = localStorage.getItem(CONFIG.storageKey + '_return');
+  localStorage.removeItem(CONFIG.storageKey + '_return');
+  if (back === 'history') S.screen = 'history';
   savePersist();
   render();
   startPulls();
+  if (back === 'history') loadHistory();
 }
 
 async function msalHandleRedirect(){
@@ -2157,6 +2186,7 @@ document.addEventListener('click', e => {
   const act = el.dataset.act, id = el.dataset.id;
   switch (act){
     case 'ms-open': msalSignIn(); return;
+    case 'ms-again': msalAgain(); return;
     case 'sheet-save': sheetSave(); break;
     case 'close': S.sheet = null; break;
     case 'signout': S.user = null; S.adminMode = false; S.screen = 'signin'; S.sheet = null; clearInterval(pullTimer); break;
